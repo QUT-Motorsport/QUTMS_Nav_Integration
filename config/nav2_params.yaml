@@ -26,7 +26,7 @@ amcl:
     recovery_alpha_fast: 0.0
     recovery_alpha_slow: 0.0
     resample_interval: 1
-    robot_model_type: "differential"
+    robot_model_type: "ackermann"
     save_pose_rate: 0.5
     sigma_hit: 0.2
     tf_broadcast: true
@@ -180,12 +180,12 @@ local_costmap:
     ros__parameters:
       update_frequency: 5.0
       publish_frequency: 2.0
-      global_frame: odom
+      global_frame: track
       robot_base_frame: base_footprint
       use_sim_time: True
       rolling_window: true
       width: 10
-      height: 10
+      height: 20
       resolution: 0.05
       footprint: "[ [0.21, 0.195], [0.21, -0.195], [-0.21, -0.195], [-0.21, 0.195] ]"
       plugins: ["voxel_layer", "inflation_layer"]
@@ -209,9 +209,9 @@ local_costmap:
           clearing: True
           marking: True
           data_type: "LaserScan"
-          raytrace_max_range: 3.0
+          raytrace_max_range: 20.0
           raytrace_min_range: 0.0
-          obstacle_max_range: 2.5
+          obstacle_max_range: 20.0
           obstacle_min_range: 0.0
       static_layer:
         map_subscribe_transient_local: True
@@ -304,8 +304,8 @@ recoveries_server:
       plugin: "nav2_recoveries/BackUp"
     wait:
       plugin: "nav2_recoveries/Wait"
-    global_frame: odom
-    robot_base_frame: base_transform
+    global_frame: track
+    robot_base_frame: base_footprint
     transform_timeout: 0.1
     use_sim_time: true
     simulate_ahead_time: 2.0
