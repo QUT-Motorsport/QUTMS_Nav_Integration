@@ -6,7 +6,7 @@
     <description>quick_build</description>
     <maintainer email="team@qutmotorsport.com">Alastair Bradford</maintainer>
     <license>MIT</license>
-    
+
     <buildtool_depend>ament_cmake</buildtool_depend>
 
     <exec_depend>fs_nav2</exec_depend>
