@@ -24,8 +24,11 @@ def generate_launch_description():
                 executable="vehicle_supervisor_node",
             ),
             Node(
-                package="lidar_pipeline_3",
-                executable="lidar_perception",
+                package="lidar_pipeline",
+                executable="lidar_detector_node",
+                parameters=[
+                    get_package_share_path("lidar_pipeline") / "config" / "lidar_pipeline.yaml",
+                ],
             ),
             Node(
                 package="py_slam",
@@ -48,7 +51,7 @@ def generate_launch_description():
             ),
             Node(
                 package="velocity_controller",
-                executable="velocity_controller_node",
+                executable="velocity_controller",
                 parameters=[
                     get_package_share_path("velocity_controller") / "config" / "velocity_controller.yaml",
                 ],
