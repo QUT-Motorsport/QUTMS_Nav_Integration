@@ -16,27 +16,51 @@ def generate_launch_description():
         package="nav2_bringup"
     ).find("nav2_bringup")
 
-    robot_localization_node = launch_ros.actions.Node(
+    odom_localization_node = launch_ros.actions.Node(
         package="robot_localization",
         executable="ekf_node",
-        name="ekf_filter_node",
+        name="odom_filter_node",
         output="screen",
         parameters=[
             os.path.join(pkg_share, "config/localisation_params.yaml"),
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
+        remappings=[
+            ("odometry/filtered", "odometry/local"),
+        ]
     )
 
-    odom_to_tf_node = launch_ros.actions.Node(
-        package="odom_to_tf_ros2",
-        executable="odom_to_tf",
-        name="odom_to_tf",
-        output="screen",
-        parameters=[
-            os.path.join(pkg_share, "config/odom2tf_params.yaml"),
-            {"use_sim_time": LaunchConfiguration("use_sim_time")},
-        ],
-    )
+    # map_localization_node = launch_ros.actions.Node(
+    #     package="robot_localization",
+    #     executable="ekf_node",
+    #     name="map_filter_node",
+    #     output="screen",
+    #     parameters=[
+    #         os.path.join(pkg_share, "config/localisation_params.yaml"),
+    #         {"use_sim_time": LaunchConfiguration("use_sim_time")},
+    #     ],
+    #     remappings=[
+    #         ("odometry/filtered", "odometry/global"),
+    #     ]
+    # )
+
+    # navsat_transform_node = launch_ros.actions.Node(
+    #     package='robot_localization',
+    #     executable='navsat_transform_node',
+    #     name='navsat_transform',
+	#     output='screen',
+    #     parameters=[
+    #         os.path.join(pkg_share, "config/localisation_params.yaml"),
+    #         {"use_sim_time": LaunchConfiguration("use_sim_time")},
+    #     ],
+    #     remappings=[
+    #         ('imu/data', 'imu/data'),
+    #         ('gps/fix', 'gps/fix'),
+    #         ('gps/filtered', 'gps/filtered'),
+    #         ('odometry/gps', 'odometry/gps'),
+    #         ('odometry/filtered', 'odometry/global')
+    #     ]
+    # )
 
     slam_async_launch = launch.actions.IncludeLaunchDescription(
         launch.launch_description_sources.PythonLaunchDescriptionSource(
@@ -55,6 +79,7 @@ def generate_launch_description():
             "params_file": os.path.join(pkg_share, "config/nav2_params.yaml")
         }.items(),
     )
+
     return launch.LaunchDescription(
         [
             launch.actions.DeclareLaunchArgument(
@@ -62,9 +87,10 @@ def generate_launch_description():
                 default_value="True",
                 description="Flag to enable use_sim_time",
             ),
-            # odom_to_tf_node,
-            robot_localization_node,
-            slam_async_launch,
+            odom_localization_node,
+            # map_localization_node,
+            # navsat_transform_node,
+            # slam_async_launch,
             # nav2_launch
         ]
     )

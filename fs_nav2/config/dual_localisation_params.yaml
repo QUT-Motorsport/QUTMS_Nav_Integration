@@ -1,11 +1,21 @@
 odom_filter_node:
     ros__parameters:
+# The frequency, in Hz, at which the filter will output a position estimate. Note that the filter will not begin
+# computation until it receives at least one message from one of theinputs. It will then run continuously at the
+# frequency specified here, regardless of whether it receives more measurements. Defaults to 30 if unspecified.
         frequency: 30.0
+
+# ekf_localization_node and ukf_localization_node both use a 3D omnidirectional motion model. If this parameter is
+# set to true, no 3D information will be used in your state estimate. Use this if you are operating in a planar
+# environment and want to ignore the effect of small variations in the ground plane that might otherwise be detected
+# by, for example, an IMU. Defaults to false if unspecified.
         two_d_mode: true
+
+# Whether to publish the acceleration state. Defaults to false if unspecified.
         publish_acceleration: false
+
+# Whether to broadcast the transformation over the /tf topic. Defaultsto true if unspecified.
         publish_tf: true
-        use_control: false
-        sensor_timeout: 0.1
 
 # 1. Set the map_frame, odom_frame, and base_link frames to the appropriate frame names for your system.
 #     1a. If your system does not have a map_frame, just remove it, and make sure "world_frame" is set to the value of odom_frame.
@@ -24,21 +34,23 @@ odom_filter_node:
         odom0: vehicle/wheel_speeds
         odom0_config: [false, false, false,  # x, y, z
                        false, false,  false,  # roll, pitch, yaw
-                       true,  false, false,  # x_dot, y_dot, z_dot
-                       false, false, false,  # roll_dot, pitch_dot, yaw_dot
+                       true,  true, true,  # x_dot, y_dot, z_dot
+                       false, false, true,  # roll_dot, pitch_dot, yaw_dot
                        false, false, false]  # x_ddot, y_ddot, z_ddot
 
         imu0: imu/data
         imu0_config: [false, false, false,  # x, y, z
-                      false, false,  true,  # roll, pitch, yaw
+                      true,  true,  true,  # roll, pitch, yaw
                       false, false, false,  # x_dot, y_dot, z_dot
                       false, false, true,  # roll_dot, pitch_dot, yaw_dot
                       true,  true,  false]  # x_ddot, y_ddot, z_ddot
         imu0_remove_gravitational_acceleration: true
 
-        # twist0: imu/velocity
-        # twist0_config: [false, false, false,  # x, y, z
-        #                 false, false, false,  # roll, pitch, yaw
-        #                 true,  true,  false,  # x_dot, y_dot, z_dot
-        #                 false, false, false,  # roll_dot, pitch_dot, yaw_dot
-        #                 false, false, false]  # x_ddot, y_ddot, z_ddot
+        twist0: imu/velocity
+        twist0_config: [false, false, false,  # x, y, z
+                        false, false, false,  # roll, pitch, yaw
+                        true,  true,  false,  # x_dot, y_dot, z_dot
+                        false, false, false,  # roll_dot, pitch_dot, yaw_dot
+                        false, false, false]  # x_ddot, y_ddot, z_ddot
+
+        print_diagnostics: true

@@ -1,0 +1,364 @@
+<?xml version="1.0"?>
+<launch>
+
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+<!-- First set : odometry vx , vy -->
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+
+    <!-- ekf_loc1 fuses only continuous data (imu and odometry). Publish the tf from odom_frame to base_footprint -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="first_ekf_loc1" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/odometry/filtered1" />
+
+      <param name="frequency" value="10"/>
+      <param name="sensor_timeout" value="0.2"/>
+      <param name="map_frame" value="map"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/>
+      <param name="world_frame" value="odom"/>
+      <param name="use_control"       value="false"/>
+      <param name="odom0" value="/wheel_odometry_new"/>
+      <param name="imu0" value="/imu_enu_new"/>
+
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, true, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                     false, false, false,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+   </node>
+
+    <!-- ekf_loc2 fuses all surces of data (imu, odometry and gps odom). Publish the tf from world frame to base_footprintt -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="first_ekf_global" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/odom" />
+      <!-- GPS update frequency: 10 Hz-->
+      <param name="frequency" value="5"/>
+      <param name="sensor_timeout" value="0.5"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="map_frame" value="map"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/> <!--guido base link  wrong-->
+      <param name="world_frame" value="map"/>
+      <param name="odom0" value="/wheel_odometry_new"/>
+      <param name="imu0" value="/imu_enu_new"/>
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, true, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                      false, false, false,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_queue_size"   value="10"/>
+      <param name="imu0_nodelay"      value="false"/>\
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+
+
+   </node>
+
+
+
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+<!-- Second set : odometry vx , vth -->
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+
+
+    <!-- ekf_loc1 fuses only continuous data (imu and odometry). Publish the tf from odom_frame to base_footprint -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="second_ekf_loc1" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/ndodometry/filtered1" />
+
+      <param name="frequency" value="10"/>
+      <param name="sensor_timeout" value="0.2"/>
+      <param name="map_frame" value="map"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/>
+      <param name="world_frame" value="odom"/>
+      <param name="use_control"       value="false"/>
+      <param name="odom0" value="/ndwheel_odometry_new"/>
+      <param name="imu0" value="/imu_enu_new"/>
+
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, false, false,
+                                      false, false, true,
+                                      false, false, false]</rosparam>
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                     false, false, false,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+   </node>
+
+    <!-- ekf_loc2 fuses all surces of data (imu, odometry and gps odom). Publish the tf from world frame to base_footprintt -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="second_ekf_global" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/ndodom" />
+      <!-- GPS update frequency: 10 Hz-->
+      <param name="frequency" value="5"/>
+      <param name="sensor_timeout" value="0.5"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="map_frame" value="map"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/> <!--guido base link  wrong-->
+      <param name="world_frame" value="map"/>
+      <param name="odom0" value="/ndwheel_odometry_new"/>
+      <param name="imu0" value="/imu_enu_new"/>
+
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, false, false,
+                                      false, false, true,
+                                      false, false, false]</rosparam>
+
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                      false, false, false,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_queue_size"   value="10"/>
+      <param name="imu0_nodelay"      value="false"/>
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+
+
+   </node>
+
+
+
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+<!-- Third set : odometry vx , vth -->
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+
+
+    <!-- ekf_loc1 fuses only continuous data (imu and odometry). Publish the tf from odom_frame to base_footprint -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="third_ekf_loc1" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/rdodometry/filtered1" />
+
+      <param name="frequency" value="10"/>
+      <param name="sensor_timeout" value="0.2"/>
+      <param name="map_frame" value="map"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/>
+      <param name="world_frame" value="odom"/>
+      <param name="use_control"       value="false"/>
+      <param name="odom0" value="/rdwheel_odometry_new"/>
+      <param name="imu0" value="/imu_enu_new"/>
+
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, false, false,
+                                      false, false, true,
+                                      false, false, false]</rosparam>
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                      false, false, false,
+                                     false, false, false]</rosparam>
+
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+   </node>
+
+    <!-- ekf_loc2 fuses all surces of data (imu, odometry and gps odom). Publish the tf from world frame to base_footprintt -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="third_ekf_global" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/rdodom" />
+      <!-- GPS update frequency: 10 Hz-->
+      <param name="frequency" value="5"/>
+      <param name="sensor_timeout" value="0.5"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="map_frame" value="map"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/> <!--guido base link  wrong-->
+      <param name="world_frame" value="map"/>
+      <param name="odom0" value="/rdwheel_odometry_new"/>
+      <param name="imu0" value="/imu_enu_new"/>
+
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, false, false,
+                                      false, false, true,
+                                      false, false, false]</rosparam>
+
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                      true, true, true,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_queue_size"   value="10"/>
+      <param name="imu0_nodelay"      value="false"/>\
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+
+   </node>
+
+
+
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+<!-- Fourth set : no wheel_odometry , GPS only -->
+<!-- ########################################################################################################### -->
+<!-- ########################################################################################################### -->
+
+
+    <!-- ekf_loc1 fuses only continuous data (imu and odometry). Publish the tf from odom_frame to base_footprint -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="fourth_ekf_loc1" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/thodometry/filtered1" />
+
+      <param name="frequency" value="10"/>
+      <param name="sensor_timeout" value="0.2"/>
+      <param name="map_frame" value="map"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/>
+      <param name="world_frame" value="odom"/>
+      <param name="use_control"       value="false"/>
+      <param name="odom0" value="/thhgdwheel_odometry_new"/>  <!-- No one puplish this topic-->
+      <param name="imu0" value="/imu_enu_new"/>
+
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, true, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                      true, true, true,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+   </node>
+
+    <!-- ekf_loc2 fuses all surces of data (imu, odometry and gps odom). Publish the tf from world frame to base_footprintt -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="fourth_ekf_global" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="/thodom" />
+      <!-- GPS update frequency: 10 Hz-->
+      <param name="frequency" value="5"/>
+      <param name="sensor_timeout" value="0.5"/>
+      <param name="two_d_mode" value="true"/>
+      <param name="map_frame" value="map"/>
+      <param name="odom_frame" value="odom"/>
+      <param name="base_link_frame" value="base_footprint"/>
+      <param name="world_frame" value="map"/>
+      <param name="odom0" value="/thwhdfheel_odometry_new"/> <!-- No one puplish this topic-->
+      <param name="imu0" value="/imu_enu_new"/>
+      <rosparam param="odom0_config">[false, false, false,
+                                      false, false, false,
+                                      true, true, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+
+      <rosparam param="imu0_config">[false, false, false,
+                                      true, true, true,
+                                     false, false, false,
+                                      true, true, true,
+                                     false, false, false]</rosparam>
+
+      <param name="odom0_differential" value="false"/>
+      <param name="imu0_differential" value="false"/>
+      <param name="odom0_relative" value="false"/>
+      <param name="imu0_relative" value="false"/>
+      <param name="imu0_queue_size"   value="10"/>
+      <param name="imu0_nodelay"      value="false"/>\
+      <param name="print_diagnostics"       value="false"/>
+      <param name="odom0_queue_size"   value="10"/>
+      <param name="odom0_nodelay"      value="false"/>
+      <param name="imu0_remove_gravitational_acceleration" value="true"/>
+
+      <!-- GPS odometry (from navsat_transform_node) -->
+      <param name="odom1" value="odometry/gps"/>
+      <rosparam param="odom1_config">[true, true, false,
+                                      false, false, false,
+                                      false, false, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+      <param name="odom1_differential" value="false"/>
+      <param name="odom1_relative" value="false"/>
+
+      <param name="odom2" value="odometry2/gps"/>
+      <rosparam param="odom2_config">[true, true, false,
+                                      false, false, false,
+                                      false, false, false,
+                                      false, false, false,
+                                      false, false, false]</rosparam>
+      <param name="odom2_differential" value="false"/>
+      <param name="odom2_relative" value="false"/>
+
+   </node>
+
+
+</launch>
