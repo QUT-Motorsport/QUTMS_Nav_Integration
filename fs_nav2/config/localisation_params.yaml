@@ -16,7 +16,7 @@ odom_filter_node:
 
         odom0: vehicle/wheel_odom
         odom0_config: [false, false, false,  # x, y, z
-                       false, false,  false,  # roll, pitch, yaw
+                       false, false, false,  # roll, pitch, yaw
                        true,  false, false,  # x_dot, y_dot, z_dot
                        false, false, true,  # roll_dot, pitch_dot, yaw_dot
                        false, false, false]  # x_ddot, y_ddot, z_ddot
