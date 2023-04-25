@@ -1,12 +1,5 @@
 odom_filter_node:
     ros__parameters:
-        frequency: 30.0
-        two_d_mode: true
-        publish_acceleration: false
-        publish_tf: true
-        use_control: false
-        sensor_timeout: 0.1
-
 # 1. Set the map_frame, odom_frame, and base_link frames to the appropriate frame names for your system.
 #     1a. If your system does not have a map_frame, just remove it, and make sure "world_frame" is set to the value of odom_frame.
 # 2. If you are fusing continuous position data such as wheel encoder odometry, visual odometry, or IMU data, set "world_frame"
@@ -21,24 +14,23 @@ odom_filter_node:
         base_link_frame: base_footprint  # Defaults to "base_link" ifunspecified
         world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
-        odom0: vehicle/wheel_speeds
+        odom0: vehicle/wheel_odom
         odom0_config: [false, false, false,  # x, y, z
                        false, false,  false,  # roll, pitch, yaw
                        true,  false, false,  # x_dot, y_dot, z_dot
-                       false, false, false,  # roll_dot, pitch_dot, yaw_dot
+                       false, false, true,  # roll_dot, pitch_dot, yaw_dot
                        false, false, false]  # x_ddot, y_ddot, z_ddot
 
         imu0: imu/data
         imu0_config: [false, false, false,  # x, y, z
-                      false, false,  true,  # roll, pitch, yaw
+                      false, false, true,  # roll, pitch, yaw
                       false, false, false,  # x_dot, y_dot, z_dot
                       false, false, true,  # roll_dot, pitch_dot, yaw_dot
-                      true,  true,  false]  # x_ddot, y_ddot, z_ddot
+                      false, false, false]  # x_ddot, y_ddot, z_ddot
         imu0_remove_gravitational_acceleration: true
 
-        # twist0: imu/velocity
-        # twist0_config: [false, false, false,  # x, y, z
-        #                 false, false, false,  # roll, pitch, yaw
-        #                 true,  true,  false,  # x_dot, y_dot, z_dot
-        #                 false, false, false,  # roll_dot, pitch_dot, yaw_dot
-        #                 false, false, false]  # x_ddot, y_ddot, z_ddot
+        frequency: 50.0
+        two_d_mode: true
+        publish_acceleration: false
+        publish_tf: true
+        sensor_timeout: 0.1
