@@ -91,6 +91,6 @@ def generate_launch_description():
             # map_localization_node,
             # navsat_transform_node,
             slam_async_launch,
-            nav2_launch
+            # nav2_launch
         ]
     )

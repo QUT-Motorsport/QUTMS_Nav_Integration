@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import math
+from math import cos, sin, atan2, hypot
 
 import numpy as np
 
@@ -15,12 +15,13 @@ class ConeProps:
 
     local_x: float
     local_y: float
+    map_x: float
+    map_y: float
     cov: np.ndarray
     colour: int
     range: float
     bearing: float
     sensor: str
-    map_coords = np.array([0, 0])
     tracked: bool = False
     confirmed: bool = False
     frame_count: int = 0
@@ -28,7 +29,7 @@ class ConeProps:
     blue_count: int = 0
     orange_count: int = 0
 
-    def __init__(self, cone: Cone, frame_id: str):
+    def __init__(self, cone: Cone, frame_id: str, state: np.ndarray):
         if frame_id == "velodyne":
             self.local_x = cone.location.x + 1.65
             self.sensor = "lidar"
@@ -38,12 +39,20 @@ class ConeProps:
         self.local_y = cone.location.y
         self.colour = cone.color
 
-        self.range = math.hypot(self.local_x, self.local_y)
-        self.bearing = math.atan2(self.local_y, self.local_x)
+        self.range = hypot(self.local_x, self.local_y)
+        self.bearing = atan2(self.local_y, self.local_x)
 
-    def set_world_coords(self, map_coords: np.ndarray):
-        """Sets the world coordinates of the cone"""
-        self.map_coords = map_coords
+        # transform detection to map
+        rotation_mat = np.array(
+            [
+                [cos(state[2]), -sin(state[2])],
+                [sin(state[2]), cos(state[2])],
+            ]
+        )
+        map_coords = rotation_mat @ np.array([self.local_x, self.local_y]).T + state[:2]
+        self.map_x = map_coords[0]
+        self.map_y = map_coords[1]
+  
 
     def update(self, state: np.ndarray, cov: np.ndarray, colour: int, FRAME_COUNT: int):
         """Updates the state and colour of the cone"""
