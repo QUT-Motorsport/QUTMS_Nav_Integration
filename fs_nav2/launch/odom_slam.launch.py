@@ -21,9 +21,6 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/localisation_params.yaml"),
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
-        remappings=[
-            ("odometry/filtered", "odometry/local"),
-        ]
     )
     slam_node = launch_ros.actions.Node(
         package="py_slam",

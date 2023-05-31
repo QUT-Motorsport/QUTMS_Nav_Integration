@@ -25,9 +25,9 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/localisation_params.yaml"),
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
-        remappings=[
-            ("odometry/filtered", "odometry/local"),
-        ]
+        # remappings=[
+        #     ("odometry/filtered", "odometry/local"),
+        # ]
     )
 
     # map_localization_node = launch_ros.actions.Node(
@@ -90,7 +90,7 @@ def generate_launch_description():
             odom_localization_node,
             # map_localization_node,
             # navsat_transform_node,
-            # slam_async_launch,
-            # nav2_launch
+            slam_async_launch,
+            nav2_launch
         ]
     )
