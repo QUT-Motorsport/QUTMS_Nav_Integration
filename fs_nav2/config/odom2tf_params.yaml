@@ -1,6 +1,0 @@
-odom_to_tf:
-    ros__parameters:
-        odom_topic: "/ground_truth/odom"
-        frame_id: "odom"
-        child_frame_id: "base_footprint"
-        use_sim_time: False
