@@ -3,7 +3,7 @@ import os
 
 from setuptools import setup
 
-package_name = "cone_association"
+package_name = "evaluation"
 
 setup(
     name=package_name,
@@ -23,7 +23,8 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "mapping = cone_association.node_mapping:main",
+            "map_comparison = evaluation.node_map_comparison:main",
+            "pose_history = evaluation.node_pose_history:main",
         ],
     },
 )

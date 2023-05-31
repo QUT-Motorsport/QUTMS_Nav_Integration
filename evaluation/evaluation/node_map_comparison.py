@@ -1,4 +1,5 @@
-from pathlib import Path
+from pathlib import Path as OSPath
+from math import sqrt
 
 import pandas as pd
 
@@ -8,10 +9,10 @@ from rclpy.node import Node
 from driverless_msgs.msg import ConeDetectionStamped
 from nav_msgs.msg import Path
 
-USE_ODOM = False
+USE_ODOM = True
 
 class MapComparison(Node):
-    csv_folder = Path("./QUTMS_Nav_Integration/csv_data")
+    csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
     slam_map = None
     slam_path = None
     gt_map = None
@@ -36,29 +37,30 @@ class MapComparison(Node):
         self.get_logger().info("---Track Writer Initalised---")
 
     def slam_map_callback(self, msg: ConeDetectionStamped):
-        if self.received_map is None:
+        if self.slam_path is None:
             self.slam_map = msg
-            self.get_logger().info("Received map")
+            self.get_logger().info(f"Received slam map: {len(msg.cones)} cones")
         
     def slam_path_callback(self, msg: Path):
-        if self.received_path is None:
+        if self.slam_path is None:
             self.slam_path = msg
-            self.get_logger().info("Received path")
+            self.get_logger().info(f"Received slam path: {len(msg.poses)} poses")
 
     def gt_map_callback(self, msg: ConeDetectionStamped):
-        if self.received_map is None:
+        if self.gt_map is None:
             self.gt_map = msg
-            self.get_logger().info("Received map")
+            self.get_logger().info(f"Received gt map {len(msg.cones_with_cov)} cones")
 
     def gt_path_callback(self, msg: Path):
-        if self.received_path is None:
+        if self.gt_path is None:
             self.gt_path = msg
-            self.get_logger().info("Received path")
+            self.get_logger().info(f"Received gt path: {len(msg.poses)} poses")
     
     def check_received(self):
         if self.slam_map is None or self.slam_path is None or self.gt_map is None or self.gt_path is None:
             return
         
+        self.get_logger().info("Comparing maps")
         # compare the two maps
         # iterate through each slam detection and find the closest gt detection to accumulate error
         map_error = 0
@@ -66,14 +68,17 @@ class MapComparison(Node):
             # find the closest gt cone
             closest_gt_cone = None
             closest_gt_cone_distance = 1000000
-            for gt_cone in self.gt_map.cones:
-                distance = (slam_cone.cone.location.x - gt_cone.cone.location.x)**2 + (slam_cone.cone.location.y - gt_cone.cone.location.y)**2
+            for gt_cone in self.gt_map.cones_with_cov:
+                distance = (slam_cone.location.x - gt_cone.cone.location.x)**2 + (slam_cone.location.y - gt_cone.cone.location.y)**2
                 if distance < closest_gt_cone_distance:
                     closest_gt_cone = gt_cone
                     closest_gt_cone_distance = distance
             
             # add the error to the total error
             map_error += closest_gt_cone_distance
+        
+        # rmse
+        map_rmse = sqrt(map_error / len(self.slam_map.cones))
 
         # compare the two paths
         # iterate through each slam pose and find the closest gt pose to accumulate error
@@ -91,18 +96,30 @@ class MapComparison(Node):
             # add the error to the total error
             path_error += closest_gt_pose_distance
 
+        # rmse
+        path_rmse = sqrt(path_error / len(self.slam_path.poses))
+
+        self.get_logger().info(f"Map error: {map_rmse}")
+        self.get_logger().info(f"Path error: {path_rmse}")
+
         # write the error to a csv file, append to the file if it already exists
         csv_file = self.csv_folder / "map_comparison.csv"
         if csv_file.exists():
             df = pd.read_csv(csv_file)
         else:
-            df = pd.DataFrame(columns=["id", "map_error", "path_error"])
+            df = pd.DataFrame(columns=["id", "map_rmse", "path_rmse"])
         
         # get the id of the current run - whether it uses odom or not and number of runs with that config
         id = "odom" if USE_ODOM else "no_odom"
         id += f"_{len(df[df['id'] == id])}"
         
-        df = df.append({"id": id, "map_error": map_error, "path_error": path_error}, ignore_index=True)
+        df = df.append({"id": id, "map_rmse": map_rmse, "path_rmse": path_rmse}, ignore_index=True)
+
+        df.to_csv(csv_file, index=False)
+
+        # exit the node
+        self.get_logger().info("Finished writing to csv")
+        exit(0)
 
 
 def main():
