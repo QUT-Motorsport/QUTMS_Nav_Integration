@@ -24,6 +24,7 @@ setup(
     entry_points={
         "console_scripts": [
             "mapping = cone_association.node_mapping:main",
+            "mapping2 = cone_association.node_mapping:main",
         ],
     },
 )
