@@ -40,7 +40,7 @@ class ConeAssociation(Node):
         super().__init__("sbg_slam_node")
 
         self.create_subscription(ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1)
-        # self.create_subscription(ConeDetectionStamped, "/vision/cone_detection", self.callback, 1)
+        self.create_subscription(ConeDetectionStamped, "/vision/cone_detection", self.callback, 1)
         self.create_subscription(Reset, "/system/reset", self.reset_callback, 10)
 
         self.tf_buffer = Buffer()
@@ -156,10 +156,11 @@ class ConeAssociation(Node):
             if cone[3] < MIN_DETECTIONS:
                 continue
             
-            track_msg.cones.append(Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2])))
-            track_msg.cones_with_cov.append(
-                ConeWithCovariance(cone=Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2])), covariance=[0.0,0.0,0.0,0.0])
-            )
+            cone_msg = Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2]))
+            track_msg.cones.appendcone_msg
+            # make covariance based on the number of detections
+            covariance = [10.0 / cone[3], 0.0, 0.0, 10.0 / cone[3]]
+            track_msg.cones_with_cov.append(ConeWithCovariance(cone=cone_msg, covariance=covariance))
 
         self.slam_publisher.publish(track_msg)
 
@@ -203,11 +204,10 @@ class ConeAssociation(Node):
                 continue
 
             cone_msg = Cone(location=Point(x=local[0], y=local[1], z=0.0), color=int(cone[2]))
-
             local_map_msg.cones.append(cone_msg)
-            local_map_msg.cones_with_cov.append(
-                ConeWithCovariance(cone=cone_msg, covariance=[0.0, 0.0, 0.0, 0.0])
-            )
+            
+            covariance = [10.0 / cone[3], 0.0, 0.0, 10.0 / cone[3]]
+            local_map_msg.cones_with_cov.append(ConeWithCovariance(cone=cone_msg, covariance=covariance))
 
         return local_map_msg
 
