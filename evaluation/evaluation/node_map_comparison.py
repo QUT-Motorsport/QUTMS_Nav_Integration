@@ -9,7 +9,7 @@ from rclpy.node import Node
 from driverless_msgs.msg import ConeDetectionStamped
 from nav_msgs.msg import Path
 
-USE_ODOM = True
+USE_ODOM = False
 
 class MapComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
