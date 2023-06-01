@@ -3,13 +3,11 @@ import time
 
 import numpy as np
 from sklearn.neighbors import KDTree
-from tf2_ros import TransformBroadcaster, TransformException
+from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from transforms3d.euler import euler2quat, quat2euler
-from sklearn.cluster import DBSCAN
 
-import message_filters
 import rclpy
 from rclpy.node import Node
 from rclpy.publisher import Publisher
@@ -18,7 +16,6 @@ from driverless_msgs.msg import ConeDetectionStamped, ConeWithCovariance, Reset,
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Path
 
-from driverless_common.common import wrap_to_pi
 from cone_association.cone_props import ConeProps
 
 from typing import Optional, Tuple
@@ -157,9 +154,9 @@ class ConeAssociation(Node):
                 continue
             
             cone_msg = Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2]))
-            track_msg.cones.appendcone_msg
+            track_msg.cones.append(cone_msg)
             # make covariance based on the number of detections
-            covariance = [10.0 / cone[3], 0.0, 0.0, 10.0 / cone[3]]
+            covariance = [5.0 / cone[3], 0.0, 0.0, 5.0 / cone[3]]
             track_msg.cones_with_cov.append(ConeWithCovariance(cone=cone_msg, covariance=covariance))
 
         self.slam_publisher.publish(track_msg)
