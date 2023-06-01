@@ -15,7 +15,7 @@ from rclpy.node import Node
 from rclpy.publisher import Publisher
 
 from driverless_msgs.msg import ConeDetectionStamped, ConeWithCovariance, Reset, Cone
-from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped, Quaternion, TransformStamped
+from geometry_msgs.msg import Point
 from nav_msgs.msg import Path
 
 from driverless_common.common import wrap_to_pi
@@ -40,7 +40,7 @@ class ConeAssociation(Node):
         super().__init__("sbg_slam_node")
 
         self.create_subscription(ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1)
-        self.create_subscription(ConeDetectionStamped, "/vision/cone_detection", self.callback, 1)
+        # self.create_subscription(ConeDetectionStamped, "/vision/cone_detection", self.callback, 1)
         self.create_subscription(Reset, "/system/reset", self.reset_callback, 10)
 
         self.tf_buffer = Buffer()
@@ -93,28 +93,31 @@ class ConeAssociation(Node):
         for cone in msg.cones:
             detection = ConeProps(cone, msg.header.frame_id, self.state)  # detection with properties
             if self.track is None:
-                # initialise array
-                yellow_count = 1 if detection.colour == Cone.YELLOW else 0
-                blue_count = 1 if detection.colour == Cone.BLUE else 0
-                orange_count = 1 if detection.colour == Cone.ORANGE_BIG else 0
-                   
-                self.track = np.array([[detection.map_x, detection.map_y, detection.colour, 1, yellow_count, blue_count, orange_count]])
+                if msg.header.frame_id == "velodyne":
+                    # initialise array
+                    yellow_count = 1 if detection.colour == Cone.YELLOW else 0
+                    blue_count = 1 if detection.colour == Cone.BLUE else 0
+                    orange_count = 1 if detection.colour == Cone.ORANGE_BIG else 0
+                    
+                    self.track = np.array([[detection.map_x, detection.map_y, detection.colour, 1, yellow_count, blue_count, orange_count]])
+                    print("Initialised track: ", self.track)
                 continue
 
             # search a KD tree for the closest cone, if it is within 1m, update the location
             # otherwise, add it to the array
             tree = KDTree(self.track[:, :2], leaf_size=LEAF_SIZE)
-            dist, ind = tree.query([[detection.map_x, detection.map_y]], k=RADIUS)
-            if ind.size != 0:
-                current_cone = self.track[ind[0]]
+            ind = tree.query_radius([[detection.map_x, detection.map_y]], r=RADIUS)
+            if ind[0].size != 0:
+                idx = ind[0][0]
+                current_cone = self.track[idx]
 
                 # update position with lidar
                 if msg.header.frame_id == "velodyne":
                     # update the location of the cone using the average of the previous location and the new location
                     detections = current_cone[3]
-                    self.track[ind[0], :2] = (current_cone[:2] * detections + [detection.map_x, detection.map_y]) / (detections + 1)
+                    self.track[idx, :2] = (current_cone[:2] * detections + [detection.map_x, detection.map_y]) / (detections + 1)
                     # update the count of the cone
-                    self.track[ind[0], 3] += 1
+                    self.track[idx, 3] += 1
                 
                 # update colour with camera
                 else:
@@ -122,13 +125,24 @@ class ConeAssociation(Node):
                     yellow_count = current_cone[4] + 1 if detection.colour == Cone.YELLOW else current_cone[4]
                     blue_count = current_cone[5] + 1 if detection.colour == Cone.BLUE else current_cone[5]
                     orange_count = current_cone[6] + 1 if detection.colour == Cone.ORANGE_BIG else current_cone[6]
-                    colour = max(yellow_count, blue_count, orange_count)
-
-                    self.track[ind[0], 2] = colour
-                    self.track[ind[0], 4] = yellow_count
-                    self.track[ind[0], 5] = blue_count
-                    self.track[ind[0], 6] = orange_count
+                    if yellow_count > blue_count and yellow_count > orange_count:
+                        colour = Cone.YELLOW
+                    elif blue_count > yellow_count and blue_count > orange_count:
+                        colour = Cone.BLUE
+                    else:
+                        colour = Cone.ORANGE_BIG
+                    self.track[idx, 2] = colour
+                    self.track[idx, 4] = yellow_count
+                    self.track[idx, 5] = blue_count
+                    self.track[idx, 6] = orange_count
         
+            else:
+                if msg.header.frame_id == "velodyne":
+                    yellow_count = 1 if detection.colour == Cone.YELLOW else 0
+                    blue_count = 1 if detection.colour == Cone.BLUE else 0
+                    orange_count = 1 if detection.colour == Cone.ORANGE_BIG else 0
+                    self.track = np.vstack([self.track, [detection.map_x, detection.map_y, detection.colour, 1, yellow_count, blue_count, orange_count]])
+
         # if no cones were detected, return
         if self.track is None:
             return
@@ -188,7 +202,7 @@ class ConeAssociation(Node):
             if local[1] > VIEW_Y:
                 continue
 
-            cone_msg = Cone(location=Point(x=local[0], y=local[1], z=0.0), color=int(cone[3]))
+            cone_msg = Cone(location=Point(x=local[0], y=local[1], z=0.0), color=int(cone[2]))
 
             local_map_msg.cones.append(cone_msg)
             local_map_msg.cones_with_cov.append(
