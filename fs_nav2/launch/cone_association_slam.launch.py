@@ -43,7 +43,12 @@ def generate_launch_description():
         name="cone_association_node",
         output="screen",
     )
-
+    pose_history_node = launch_ros.actions.Node(
+        package="evaluation",
+        executable="pose_history",
+        name="pose_history_node",
+        output="screen",
+    )
     return launch.LaunchDescription(
         [
             launch.actions.DeclareLaunchArgument(
@@ -54,5 +59,6 @@ def generate_launch_description():
             localisation_node,
             async_slam_toolbox_node,
             assocation_node,
+            pose_history_node
         ]
     )
