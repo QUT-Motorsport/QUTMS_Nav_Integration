@@ -1,12 +1,10 @@
 from dataclasses import dataclass
-from math import cos, sin, atan2, hypot
+from math import atan2, cos, hypot, sin
+from typing import Tuple
 
 import numpy as np
-
 from driverless_msgs.msg import Cone
 from geometry_msgs.msg import Point
-
-from typing import Tuple
 
 
 @dataclass
@@ -52,7 +50,6 @@ class ConeProps:
         map_coords = rotation_mat @ np.array([self.local_x, self.local_y]).T + state[:2]
         self.map_x = map_coords[0]
         self.map_y = map_coords[1]
-  
 
     def update(self, state: np.ndarray, cov: np.ndarray, colour: int, FRAME_COUNT: int):
         """Updates the state and colour of the cone"""
@@ -78,12 +75,21 @@ class ConeProps:
         elif colour == Cone.ORANGE_BIG:
             self.orange_count += increment
 
-        if self.yellow_count > self.blue_count and self.yellow_count > self.orange_count:
+        if (
+            self.yellow_count > self.blue_count
+            and self.yellow_count > self.orange_count
+        ):
             self.colour = Cone.YELLOW
-        elif self.blue_count > self.yellow_count and self.blue_count > self.orange_count:
+        elif (
+            self.blue_count > self.yellow_count and self.blue_count > self.orange_count
+        ):
             self.colour = Cone.BLUE
 
-        if self.orange_count > 10 or self.orange_count > self.yellow_count or self.orange_count > self.blue_count:
+        if (
+            self.orange_count > 10
+            or self.orange_count > self.yellow_count
+            or self.orange_count > self.blue_count
+        ):
             self.colour = Cone.ORANGE_BIG
 
         self.tracked = True
@@ -102,11 +108,16 @@ class ConeProps:
     @property
     def cone_as_msg(self) -> Cone:
         """Returns the state of the cone for a message"""
-        cone = Cone(location=Point(x=self.map_coords[0], y=self.map_coords[1], z=0.0), color=self.colour)
+        cone = Cone(
+            location=Point(x=self.map_coords[0], y=self.map_coords[1], z=0.0),
+            color=self.colour,
+        )
         return cone
 
     @property
     def local_cone_as_msg(self) -> Cone:
         """Returns the local state of the cone for a message"""
-        cone = Cone(location=Point(x=self.local_x, y=self.local_y, z=0.0), color=self.colour)
+        cone = Cone(
+            location=Point(x=self.local_x, y=self.local_y, z=0.0), color=self.colour
+        )
         return cone

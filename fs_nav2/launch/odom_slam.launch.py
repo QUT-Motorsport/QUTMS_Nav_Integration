@@ -9,8 +9,9 @@ def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package="fs_nav2").find(
         "fs_nav2"
     )
-    slam_pkg_share = launch_ros.substitutions.FindPackageShare(
-        package="py_slam").find("py_slam")
+    slam_pkg_share = launch_ros.substitutions.FindPackageShare(package="py_slam").find(
+        "py_slam"
+    )
 
     odom_localization_node = launch_ros.actions.Node(
         package="robot_localization",

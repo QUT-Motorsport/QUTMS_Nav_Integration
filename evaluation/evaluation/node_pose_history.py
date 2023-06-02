@@ -1,11 +1,11 @@
+import time
+
 import rclpy
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from nav_msgs.msg import Path
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 
-import time
-
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
-from nav_msgs.msg import Path
 
 class PoseHistory(Node):
     slam_path_history = Path()
@@ -17,10 +17,18 @@ class PoseHistory(Node):
         super().__init__("pose_history_node")
 
         # subscribe to topic
-        self.create_subscription(PoseWithCovarianceStamped, "/slam/car_pose", self.slam_callback, 10)
-        self.create_subscription(PoseWithCovarianceStamped, "/ground_truth/car_pose", self.gt_callback, 10)
-        self.slam_history_pub: Publisher = self.create_publisher(Path, "/slam/car_pose_history", 10)
-        self.gt_history_pub: Publisher = self.create_publisher(Path, "/ground_truth/car_pose_history", 10)
+        self.create_subscription(
+            PoseWithCovarianceStamped, "/slam/car_pose", self.slam_callback, 10
+        )
+        self.create_subscription(
+            PoseWithCovarianceStamped, "/ground_truth/car_pose", self.gt_callback, 10
+        )
+        self.slam_history_pub: Publisher = self.create_publisher(
+            Path, "/slam/car_pose_history", 10
+        )
+        self.gt_history_pub: Publisher = self.create_publisher(
+            Path, "/ground_truth/car_pose_history", 10
+        )
 
         self.get_logger().info("---Track Writer Initalised---")
 

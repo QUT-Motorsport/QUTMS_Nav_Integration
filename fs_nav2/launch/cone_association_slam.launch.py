@@ -24,18 +24,17 @@ def generate_launch_description():
         ],
     )
     async_slam_toolbox_node = launch_ros.actions.Node(
-        package='slam_toolbox',
-        executable='async_slam_toolbox_node',
-        name='slam_toolbox',
-        output='screen',
+        package="slam_toolbox",
+        executable="async_slam_toolbox_node",
+        name="slam_toolbox",
+        output="screen",
         parameters=[
-          os.path.join(pkg_share, "config/slam_params.yaml"),
-          {"use_sim_time": LaunchConfiguration("use_sim_time")},
+            os.path.join(pkg_share, "config/slam_params.yaml"),
+            {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
         remappings=[
             ("/pose", "/slam/car_pose"),
-        ]
-
+        ],
     )
     assocation_node = launch_ros.actions.Node(
         package="cone_association",
@@ -59,6 +58,6 @@ def generate_launch_description():
             localisation_node,
             async_slam_toolbox_node,
             assocation_node,
-            pose_history_node
+            pose_history_node,
         ]
     )

@@ -1,15 +1,14 @@
-from pathlib import Path as OSPath
 from math import sqrt
+from pathlib import Path as OSPath
 
 import pandas as pd
-
 import rclpy
-from rclpy.node import Node
-
 from driverless_msgs.msg import ConeDetectionStamped
 from nav_msgs.msg import Path
+from rclpy.node import Node
 
 USE_ODOM = False
+
 
 class MapComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
@@ -23,13 +22,28 @@ class MapComparison(Node):
 
         # subscribe to topic
         if USE_ODOM:
-            self.create_subscription(ConeDetectionStamped, "/odom_slam/global_map", self.slam_map_callback, 10)
-            self.create_subscription(Path, "/odom_slam/car_pose_history", self.slam_path_callback, 10)
+            self.create_subscription(
+                ConeDetectionStamped,
+                "/odom_slam/global_map",
+                self.slam_map_callback,
+                10,
+            )
+            self.create_subscription(
+                Path, "/odom_slam/car_pose_history", self.slam_path_callback, 10
+            )
         else:
-            self.create_subscription(ConeDetectionStamped, "/slam/global_map", self.slam_map_callback, 10)
-            self.create_subscription(Path, "/slam/car_pose_history", self.slam_path_callback, 10)
-        self.create_subscription(ConeDetectionStamped, "/ground_truth/global_map", self.gt_map_callback, 10)
-        self.create_subscription(Path, "/ground_truth/car_pose_history", self.gt_path_callback, 10)
+            self.create_subscription(
+                ConeDetectionStamped, "/slam/global_map", self.slam_map_callback, 10
+            )
+            self.create_subscription(
+                Path, "/slam/car_pose_history", self.slam_path_callback, 10
+            )
+        self.create_subscription(
+            ConeDetectionStamped, "/ground_truth/global_map", self.gt_map_callback, 10
+        )
+        self.create_subscription(
+            Path, "/ground_truth/car_pose_history", self.gt_path_callback, 10
+        )
 
         # make a timer that periodically checks if we have received a map and path
         self.create_timer(1.0, self.check_received)
@@ -40,7 +54,7 @@ class MapComparison(Node):
         if self.slam_path is None:
             self.slam_map = msg
             self.get_logger().info(f"Received slam map: {len(msg.cones)} cones")
-        
+
     def slam_path_callback(self, msg: Path):
         if self.slam_path is None:
             self.slam_path = msg
@@ -55,11 +69,16 @@ class MapComparison(Node):
         if self.gt_path is None:
             self.gt_path = msg
             self.get_logger().info(f"Received gt path: {len(msg.poses)} poses")
-    
+
     def check_received(self):
-        if self.slam_map is None or self.slam_path is None or self.gt_map is None or self.gt_path is None:
+        if (
+            self.slam_map is None
+            or self.slam_path is None
+            or self.gt_map is None
+            or self.gt_path is None
+        ):
             return
-        
+
         self.get_logger().info("Comparing maps")
         # compare the two maps
         # iterate through each slam detection and find the closest gt detection to accumulate error
@@ -69,14 +88,16 @@ class MapComparison(Node):
             closest_gt_cone = None
             closest_gt_cone_distance = 1000000
             for gt_cone in self.gt_map.cones_with_cov:
-                distance = (slam_cone.location.x - gt_cone.cone.location.x)**2 + (slam_cone.location.y - gt_cone.cone.location.y)**2
+                distance = (slam_cone.location.x - gt_cone.cone.location.x) ** 2 + (
+                    slam_cone.location.y - gt_cone.cone.location.y
+                ) ** 2
                 if distance < closest_gt_cone_distance:
                     closest_gt_cone = gt_cone
                     closest_gt_cone_distance = distance
-            
+
             # add the error to the total error
             map_error += closest_gt_cone_distance
-        
+
         # rmse
         map_rmse = sqrt(map_error / len(self.slam_map.cones))
 
@@ -88,11 +109,13 @@ class MapComparison(Node):
             closest_gt_pose = None
             closest_gt_pose_distance = 1000000
             for gt_pose in self.gt_path.poses:
-                distance = (slam_pose.pose.position.x - gt_pose.pose.position.x)**2 + (slam_pose.pose.position.y - gt_pose.pose.position.y)**2
+                distance = (
+                    slam_pose.pose.position.x - gt_pose.pose.position.x
+                ) ** 2 + (slam_pose.pose.position.y - gt_pose.pose.position.y) ** 2
                 if distance < closest_gt_pose_distance:
                     closest_gt_pose = gt_pose
                     closest_gt_pose_distance = distance
-            
+
             # add the error to the total error
             path_error += closest_gt_pose_distance
 
@@ -108,12 +131,14 @@ class MapComparison(Node):
             df = pd.read_csv(csv_file)
         else:
             df = pd.DataFrame(columns=["id", "map_rmse", "path_rmse"])
-        
+
         # get the id of the current run - whether it uses odom or not and number of runs with that config
         id = "odom" if USE_ODOM else "no_odom"
         id += f"_{len(df[df['id'] == id])}"
-        
-        df = df.append({"id": id, "map_rmse": map_rmse, "path_rmse": path_rmse}, ignore_index=True)
+
+        df = df.append(
+            {"id": id, "map_rmse": map_rmse, "path_rmse": path_rmse}, ignore_index=True
+        )
 
         df.to_csv(csv_file, index=False)
 

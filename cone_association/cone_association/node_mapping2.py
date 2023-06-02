@@ -1,24 +1,22 @@
-from math import atan2, cos, hypot, pi, sin, sqrt
 import time
+from math import atan2, cos, hypot, pi, sin, sqrt
+from typing import Optional, Tuple
 
 import numpy as np
+import rclpy
+from driverless_msgs.msg import (Cone, ConeDetectionStamped,
+                                 ConeWithCovariance, Reset)
+from geometry_msgs.msg import Point
+from nav_msgs.msg import Path
+from rclpy.node import Node
+from rclpy.publisher import Publisher
 from sklearn.neighbors import KDTree
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from transforms3d.euler import euler2quat, quat2euler
 
-import rclpy
-from rclpy.node import Node
-from rclpy.publisher import Publisher
-
-from driverless_msgs.msg import ConeDetectionStamped, ConeWithCovariance, Reset, Cone
-from geometry_msgs.msg import Point
-from nav_msgs.msg import Path
-
 from cone_association.cone_props import ConeProps
-
-from typing import Optional, Tuple
 
 VIEW_X = 20
 VIEW_Y = 10
@@ -26,26 +24,35 @@ RADIUS = 1
 LEAF_SIZE = 10
 MIN_DETECTIONS = 20
 
+
 class ConeAssociation(Node):
     state: Optional[np.ndarray] = None
     track: Optional[np.ndarray] = None
     last_time = time.time()
-    
+
     detection_count = 0
 
     def __init__(self):
         super().__init__("sbg_slam_node")
 
-        self.create_subscription(ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1)
-        self.create_subscription(ConeDetectionStamped, "/vision/cone_detection", self.callback, 1)
+        self.create_subscription(
+            ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1
+        )
+        self.create_subscription(
+            ConeDetectionStamped, "/vision/cone_detection", self.callback, 1
+        )
         self.create_subscription(Reset, "/system/reset", self.reset_callback, 10)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # slam publisher
-        self.slam_publisher: Publisher = self.create_publisher(ConeDetectionStamped, "/slam/global_map", 1)
-        self.local_publisher: Publisher = self.create_publisher(ConeDetectionStamped, "/slam/local_map", 1)
+        self.slam_publisher: Publisher = self.create_publisher(
+            ConeDetectionStamped, "/slam/global_map", 1
+        )
+        self.local_publisher: Publisher = self.create_publisher(
+            ConeDetectionStamped, "/slam/local_map", 1
+        )
 
         self.get_logger().info("---SLAM node initialised---")
 
@@ -59,7 +66,9 @@ class ConeAssociation(Node):
         start: float = time.perf_counter()
         # skip if no transform received
         try:
-            map_to_base = self.tf_buffer.lookup_transform("track", "base_footprint", rclpy.time.Time())
+            map_to_base = self.tf_buffer.lookup_transform(
+                "track", "base_footprint", rclpy.time.Time()
+            )
         except TransformException as e:
             self.get_logger().warn("Transform exception: " + str(e))
             return
@@ -88,15 +97,29 @@ class ConeAssociation(Node):
 
         # process detected cones
         for cone in msg.cones:
-            detection = ConeProps(cone, msg.header.frame_id, self.state)  # detection with properties
+            detection = ConeProps(
+                cone, msg.header.frame_id, self.state
+            )  # detection with properties
             if self.track is None:
                 if msg.header.frame_id == "velodyne":
                     # initialise array
                     yellow_count = 1 if detection.colour == Cone.YELLOW else 0
                     blue_count = 1 if detection.colour == Cone.BLUE else 0
                     orange_count = 1 if detection.colour == Cone.ORANGE_BIG else 0
-                    
-                    self.track = np.array([[detection.map_x, detection.map_y, detection.colour, 1, yellow_count, blue_count, orange_count]])
+
+                    self.track = np.array(
+                        [
+                            [
+                                detection.map_x,
+                                detection.map_y,
+                                detection.colour,
+                                1,
+                                yellow_count,
+                                blue_count,
+                                orange_count,
+                            ]
+                        ]
+                    )
                     print("Initialised track: ", self.track)
                 continue
 
@@ -112,16 +135,31 @@ class ConeAssociation(Node):
                 if msg.header.frame_id == "velodyne":
                     # update the location of the cone using the average of the previous location and the new location
                     detections = current_cone[3]
-                    self.track[idx, :2] = (current_cone[:2] * detections + [detection.map_x, detection.map_y]) / (detections + 1)
+                    self.track[idx, :2] = (
+                        current_cone[:2] * detections
+                        + [detection.map_x, detection.map_y]
+                    ) / (detections + 1)
                     # update the count of the cone
                     self.track[idx, 3] += 1
-                
+
                 # update colour with camera
                 else:
                     # update the colour weight of the cone
-                    yellow_count = current_cone[4] + 1 if detection.colour == Cone.YELLOW else current_cone[4]
-                    blue_count = current_cone[5] + 1 if detection.colour == Cone.BLUE else current_cone[5]
-                    orange_count = current_cone[6] + 1 if detection.colour == Cone.ORANGE_BIG else current_cone[6]
+                    yellow_count = (
+                        current_cone[4] + 1
+                        if detection.colour == Cone.YELLOW
+                        else current_cone[4]
+                    )
+                    blue_count = (
+                        current_cone[5] + 1
+                        if detection.colour == Cone.BLUE
+                        else current_cone[5]
+                    )
+                    orange_count = (
+                        current_cone[6] + 1
+                        if detection.colour == Cone.ORANGE_BIG
+                        else current_cone[6]
+                    )
                     if yellow_count > blue_count and yellow_count > orange_count:
                         colour = Cone.YELLOW
                     elif blue_count > yellow_count and blue_count > orange_count:
@@ -132,18 +170,31 @@ class ConeAssociation(Node):
                     self.track[idx, 4] = yellow_count
                     self.track[idx, 5] = blue_count
                     self.track[idx, 6] = orange_count
-        
+
             else:
                 if msg.header.frame_id == "velodyne":
                     yellow_count = 1 if detection.colour == Cone.YELLOW else 0
                     blue_count = 1 if detection.colour == Cone.BLUE else 0
                     orange_count = 1 if detection.colour == Cone.ORANGE_BIG else 0
-                    self.track = np.vstack([self.track, [detection.map_x, detection.map_y, detection.colour, 1, yellow_count, blue_count, orange_count]])
+                    self.track = np.vstack(
+                        [
+                            self.track,
+                            [
+                                detection.map_x,
+                                detection.map_y,
+                                detection.colour,
+                                1,
+                                yellow_count,
+                                blue_count,
+                                orange_count,
+                            ],
+                        ]
+                    )
 
         # if no cones were detected, return
         if self.track is None:
             return
-        
+
         # publish slam msg
         track_msg = ConeDetectionStamped()
         track_msg.header.stamp = msg.header.stamp
@@ -152,12 +203,16 @@ class ConeAssociation(Node):
             # ensure that the cone has been detected enough
             if cone[3] < MIN_DETECTIONS:
                 continue
-            
-            cone_msg = Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2]))
+
+            cone_msg = Cone(
+                location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2])
+            )
             track_msg.cones.append(cone_msg)
             # make covariance based on the number of detections
             covariance = [5.0 / cone[3], 0.0, 0.0, 5.0 / cone[3]]
-            track_msg.cones_with_cov.append(ConeWithCovariance(cone=cone_msg, covariance=covariance))
+            track_msg.cones_with_cov.append(
+                ConeWithCovariance(cone=cone_msg, covariance=covariance)
+            )
 
         self.slam_publisher.publish(track_msg)
 
@@ -166,9 +221,10 @@ class ConeAssociation(Node):
         self.local_publisher.publish(local_map_msg)
 
         if time.time() - self.last_time > 1:
-            self.get_logger().info(f"Wait time: {str(time.perf_counter()-start)}")  # log time
+            self.get_logger().info(
+                f"Wait time: {str(time.perf_counter()-start)}"
+            )  # log time
             self.last_time = time.time()
-
 
     def get_local_map(self, msg: ConeDetectionStamped) -> np.ndarray:
         """
@@ -200,13 +256,18 @@ class ConeAssociation(Node):
             if local[1] > VIEW_Y:
                 continue
 
-            cone_msg = Cone(location=Point(x=local[0], y=local[1], z=0.0), color=int(cone[2]))
+            cone_msg = Cone(
+                location=Point(x=local[0], y=local[1], z=0.0), color=int(cone[2])
+            )
             local_map_msg.cones.append(cone_msg)
-            
+
             covariance = [10.0 / cone[3], 0.0, 0.0, 10.0 / cone[3]]
-            local_map_msg.cones_with_cov.append(ConeWithCovariance(cone=cone_msg, covariance=covariance))
+            local_map_msg.cones_with_cov.append(
+                ConeWithCovariance(cone=cone_msg, covariance=covariance)
+            )
 
         return local_map_msg
+
 
 def main(args=None):
     rclpy.init(args=args)

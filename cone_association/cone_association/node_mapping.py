@@ -1,30 +1,30 @@
-from math import atan2, cos, hypot, pi, sin, sqrt
 import time
+from math import atan2, cos, hypot, pi, sin, sqrt
+from typing import Optional, Tuple
 
+import message_filters
 import numpy as np
+import rclpy
+from driverless_common.common import wrap_to_pi
+from driverless_msgs.msg import (Cone, ConeDetectionStamped,
+                                 ConeWithCovariance, Reset)
+from geometry_msgs.msg import (Point, PoseStamped, PoseWithCovarianceStamped,
+                               Quaternion, TransformStamped)
+from nav_msgs.msg import Path
+from rclpy.node import Node
+from rclpy.publisher import Publisher
+from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KDTree
 from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from transforms3d.euler import euler2quat, quat2euler
-from sklearn.cluster import DBSCAN
 
-import message_filters
-import rclpy
-from rclpy.node import Node
-from rclpy.publisher import Publisher
-
-from driverless_msgs.msg import ConeDetectionStamped, ConeWithCovariance, Reset, Cone
-from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped, Quaternion, TransformStamped
-from nav_msgs.msg import Path
-
-from driverless_common.common import wrap_to_pi
 from cone_association.cone_props import ConeProps
-
-from typing import Optional, Tuple
 
 VIEW_X = 20
 VIEW_Y = 10
+
 
 class ConeAssociation(Node):
     state: Optional[np.ndarray] = None
@@ -33,22 +33,30 @@ class ConeAssociation(Node):
     properties = np.array([])
 
     last_time = time.time()
-    
+
     detection_count = 0
 
     def __init__(self):
         super().__init__("sbg_slam_node")
 
-        self.create_subscription(ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1)
-        self.create_subscription(ConeDetectionStamped, "/vision/cone_detection", self.callback, 1)
+        self.create_subscription(
+            ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1
+        )
+        self.create_subscription(
+            ConeDetectionStamped, "/vision/cone_detection", self.callback, 1
+        )
         self.create_subscription(Reset, "/system/reset", self.reset_callback, 10)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # slam publisher
-        self.slam_publisher: Publisher = self.create_publisher(ConeDetectionStamped, "/slam/global_map", 1)
-        self.local_publisher: Publisher = self.create_publisher(ConeDetectionStamped, "/slam/local_map", 1)
+        self.slam_publisher: Publisher = self.create_publisher(
+            ConeDetectionStamped, "/slam/global_map", 1
+        )
+        self.local_publisher: Publisher = self.create_publisher(
+            ConeDetectionStamped, "/slam/local_map", 1
+        )
 
         self.get_logger().info("---SLAM node initialised---")
 
@@ -63,7 +71,9 @@ class ConeAssociation(Node):
         start: float = time.perf_counter()
         # skip if no transform received
         try:
-            map_to_base = self.tf_buffer.lookup_transform("track", "base_footprint", rclpy.time.Time())
+            map_to_base = self.tf_buffer.lookup_transform(
+                "track", "base_footprint", rclpy.time.Time()
+            )
         except TransformException as e:
             self.get_logger().warn("Transform exception: " + str(e))
             return
@@ -95,17 +105,38 @@ class ConeAssociation(Node):
 
         # process detected cones
         for cone in msg.cones:
-            detection = ConeProps(cone, msg.header.frame_id, self.state)  # detection with properties
+            detection = ConeProps(
+                cone, msg.header.frame_id, self.state
+            )  # detection with properties
             if self.track_in_view is None:
                 # initialise array
-                self.track_in_view = np.array([[self.detection_count, detection.map_x, detection.map_y, detection.colour]])
+                self.track_in_view = np.array(
+                    [
+                        [
+                            self.detection_count,
+                            detection.map_x,
+                            detection.map_y,
+                            detection.colour,
+                        ]
+                    ]
+                )
                 continue
-            self.track_in_view = np.vstack([self.track_in_view, [self.detection_count, detection.map_x, detection.map_y, detection.colour]])
+            self.track_in_view = np.vstack(
+                [
+                    self.track_in_view,
+                    [
+                        self.detection_count,
+                        detection.map_x,
+                        detection.map_y,
+                        detection.colour,
+                    ],
+                ]
+            )
             self.detection_count += 1
-        
+
         # cluster cones with DBSCAN
         clustering = DBSCAN(eps=1.5, min_samples=25).fit(self.track_in_view[:, 1:3])
-        
+
         # get the center and number of pts in each cluster
         cluster_centers = []
         points_in_clusters = []
@@ -119,8 +150,10 @@ class ConeAssociation(Node):
                 # initialise array
                 if points > 25:
                     self.confirmed_track = np.array([[center[0], center[1], 1]])
-                continue 
-            self.confirmed_track = np.vstack([self.confirmed_track, [center[0], center[1], 1]])
+                continue
+            self.confirmed_track = np.vstack(
+                [self.confirmed_track, [center[0], center[1], 1]]
+            )
 
         # publish slam msg
         if self.confirmed_track is not None:
@@ -128,9 +161,19 @@ class ConeAssociation(Node):
             track_msg.header.stamp = msg.header.stamp
             track_msg.header.frame_id = "track"
             for cone in self.confirmed_track:
-                track_msg.cones.append(Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2])))
+                track_msg.cones.append(
+                    Cone(
+                        location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2])
+                    )
+                )
                 track_msg.cones_with_cov.append(
-                    ConeWithCovariance(cone=Cone(location=Point(x=cone[0], y=cone[1], z=0.0), color=int(cone[2])), covariance=[0.0,0.0,0.0,0.0])
+                    ConeWithCovariance(
+                        cone=Cone(
+                            location=Point(x=cone[0], y=cone[1], z=0.0),
+                            color=int(cone[2]),
+                        ),
+                        covariance=[0.0, 0.0, 0.0, 0.0],
+                    )
                 )
 
             self.slam_publisher.publish(track_msg)
@@ -148,9 +191,10 @@ class ConeAssociation(Node):
         # self.local_publisher.publish(local_map_msg)
 
         if time.time() - self.last_time > 1:
-            self.get_logger().info(f"Wait time: {str(time.perf_counter()-start)}")  # log time
+            self.get_logger().info(
+                f"Wait time: {str(time.perf_counter()-start)}"
+            )  # log time
             self.last_time = time.time()
-
 
     # def get_local_map(self, rotation_mat) -> np.ndarray:
     #     """
@@ -191,7 +235,7 @@ class ConeAssociation(Node):
         # if no landmarks, return
         if self.track_in_view is None:
             return
-        
+
         # get the indexes of landmarks that are outside of the view of the car
         # rotation matrix to rotate the map to the car's heading
         rotation_mat = np.array(
@@ -203,20 +247,26 @@ class ConeAssociation(Node):
 
         local_coords = np.array([])
         for i in range(len(self.track_in_view)):
-            local = np.linalg.inv(rotation_mat) @ (self.track_in_view[i, 1:3] - self.state[0:2])
+            local = np.linalg.inv(rotation_mat) @ (
+                self.track_in_view[i, 1:3] - self.state[0:2]
+            )
             local_coords = np.append(local_coords, [local])
         local_coords = local_coords.reshape(-1, 2)
 
         # get any cones that are within -10m to 10m beside car
-        side_idxs = np.where(np.logical_and(local_coords[:, 1] > -VIEW_Y, local_coords[:, 1] < VIEW_Y))[0]
+        side_idxs = np.where(
+            np.logical_and(local_coords[:, 1] > -VIEW_Y, local_coords[:, 1] < VIEW_Y)
+        )[0]
         # get any cones that are within 15m in front of car
-        forward_idxs = np.where(np.logical_and(local_coords[:, 0] > 0, local_coords[:, 0] < VIEW_X))[0]
+        forward_idxs = np.where(
+            np.logical_and(local_coords[:, 0] > 0, local_coords[:, 0] < VIEW_X)
+        )[0]
         # combine indexes
         idxs = np.intersect1d(side_idxs, forward_idxs)
 
         # remove landmarks outside of the view of the car
         self.track_in_view = self.track_in_view[idxs]
-        
+
 
 def main(args=None):
     rclpy.init(args=args)

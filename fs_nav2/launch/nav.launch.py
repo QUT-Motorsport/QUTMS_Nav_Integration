@@ -48,7 +48,7 @@ def generate_launch_description():
     #     package='robot_localization',
     #     executable='navsat_transform_node',
     #     name='navsat_transform',
-	#     output='screen',
+    #     output='screen',
     #     parameters=[
     #         os.path.join(pkg_share, "config/localisation_params.yaml"),
     #         {"use_sim_time": LaunchConfiguration("use_sim_time")},
@@ -87,10 +87,10 @@ def generate_launch_description():
                 default_value="True",
                 description="Flag to enable use_sim_time",
             ),
-            odom_localization_node,
+            # odom_localization_node,
             # map_localization_node,
             # navsat_transform_node,
-            slam_async_launch,
-            # nav2_launch
+            # slam_async_launch,
+            nav2_launch,
         ]
     )
