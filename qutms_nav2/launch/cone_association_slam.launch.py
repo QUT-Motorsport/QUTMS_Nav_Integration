@@ -9,9 +9,6 @@ def generate_launch_description():
     pkg_share = launch_ros.substitutions.FindPackageShare(package="qutms_nav2").find(
         "qutms_nav2"
     )
-    slam_pkg_share = launch_ros.substitutions.FindPackageShare(
-        package="slam_toolbox"
-    ).find("slam_toolbox")
 
     localisation_node = launch_ros.actions.Node(
         package="robot_localization",
@@ -26,7 +23,7 @@ def generate_launch_description():
     async_slam_toolbox_node = launch_ros.actions.Node(
         package="slam_toolbox",
         executable="async_slam_toolbox_node",
-        name="slam_toolbox",
+        name="slam_toolbox_node",
         output="screen",
         parameters=[
             os.path.join(pkg_share, "config/slam_params.yaml"),
