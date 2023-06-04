@@ -6,8 +6,8 @@ from launch.substitutions import Command, LaunchConfiguration
 
 
 def generate_launch_description():
-    pkg_share = launch_ros.substitutions.FindPackageShare(package="fs_nav2").find(
-        "fs_nav2"
+    pkg_share = launch_ros.substitutions.FindPackageShare(package="qutms_nav2").find(
+        "qutms_nav2"
     )
     slam_pkg_share = launch_ros.substitutions.FindPackageShare(
         package="slam_toolbox"
