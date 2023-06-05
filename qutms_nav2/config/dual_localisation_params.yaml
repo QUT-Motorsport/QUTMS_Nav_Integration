@@ -12,7 +12,7 @@ odom_filter_node:
     map_frame: track               # Defaults to "map" if unspecified
     odom_frame: odom            # Defaults to "odom" if unspecified
     base_link_frame: base_footprint  # Defaults to "base_link" ifunspecified
-    world_frame: track           # Defaults to the value ofodom_frame if unspecified
+    world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
     odom0: vehicle/wheel_odom
     odom0_config: [false, false, false,  # x, y, z
@@ -51,8 +51,8 @@ navsat_transform_node:
     delay: 0.0
     magnetic_declination_radians: 0.0 # 0.0429351  # For lat/long 55.944831, -3.186998
     yaw_offset: 0.0 # 1.570796327  # IMU reads 0 facing magnetic north, not east
-    zero_altitude: false
+    zero_altitude: true
     broadcast_cartesian_transform: false
     publish_filtered_gps: false
-    use_odometry_yaw: false
+    use_odometry_yaw: true
     wait_for_datum: false
