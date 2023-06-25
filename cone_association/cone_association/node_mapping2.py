@@ -7,7 +7,7 @@ import rclpy
 from driverless_msgs.msg import (Cone, ConeDetectionStamped,
                                  ConeWithCovariance, Reset)
 from geometry_msgs.msg import Point
-from nav_msgs.msg import Path
+from std_msgs.msg import UInt8
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from sklearn.neighbors import KDTree
@@ -31,6 +31,7 @@ class ConeAssociation(Node):
     last_time = time.time()
 
     detection_count = 0
+    mapping = True
 
     def __init__(self):
         super().__init__("sbg_slam_node")
@@ -42,6 +43,7 @@ class ConeAssociation(Node):
             ConeDetectionStamped, "/vision/cone_detection", self.callback, 1
         )
         self.create_subscription(Reset, "/system/reset", self.reset_callback, 10)
+        self.create_subscription(UInt8, "/system/laps_completed", self.lap_callback, 10)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -62,8 +64,17 @@ class ConeAssociation(Node):
         self.track = None
         self.last_time = time.time()
 
+    def lap_callback(self, msg: UInt8):
+        if msg.data > 0:
+            self.get_logger().info("Lap completed, mapping completed")
+            self.mapping = False
+
     def callback(self, msg: ConeDetectionStamped):
         start: float = time.perf_counter()
+
+        if not self.mapping:
+            return
+
         # skip if no transform received
         try:
             map_to_base = self.tf_buffer.lookup_transform(
@@ -221,7 +232,7 @@ class ConeAssociation(Node):
         self.local_publisher.publish(local_map_msg)
 
         if time.time() - self.last_time > 1:
-            self.get_logger().info(
+            self.get_logger().debug(
                 f"Wait time: {str(time.perf_counter()-start)}"
             )  # log time
             self.last_time = time.time()
