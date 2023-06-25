@@ -1,16 +1,16 @@
 import os
+from ament_index_python.packages import get_package_share_path
 
 import launch
-import launch_ros
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import Command, LaunchConfiguration
 
 
 def generate_launch_description():
-    pkg_share = launch_ros.substitutions.FindPackageShare(package="qutms_nav2").find(
-        "qutms_nav2"
-    )
+    pkg_share = get_package_share_path("qutms_nav2")
 
-    localisation_node = launch_ros.actions.Node(
+    localisation_node = Node(
         package="robot_localization",
         executable="ekf_node",
         name="odom_filter_node",
@@ -20,7 +20,7 @@ def generate_launch_description():
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
     )
-    async_slam_toolbox_node = launch_ros.actions.Node(
+    async_slam_toolbox_node = Node(
         package="slam_toolbox",
         executable="async_slam_toolbox_node",
         name="slam_toolbox_node",
@@ -33,13 +33,13 @@ def generate_launch_description():
             ("/pose", "/slam/car_pose"),
         ],
     )
-    assocation_node = launch_ros.actions.Node(
+    assocation_node = Node(
         package="cone_association",
         executable="mapping2",
         name="cone_association_node",
         output="screen",
     )
-    pose_history_node = launch_ros.actions.Node(
+    pose_history_node = Node(
         package="evaluation",
         executable="pose_history",
         name="pose_history_node",
