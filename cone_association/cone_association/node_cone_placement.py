@@ -57,9 +57,11 @@ class ConeAssociation(Node):
         self.get_logger().info("---SLAM node initialised---")
 
     def state_callback(self, msg: State):
-        if msg.mission == State.TRACKDRIVE and msg.state == State.DRIVING:
+        # we haven't started driving yet
+        if msg.state == State.DRIVING and msg.lap_count == 0:
             self.mapping = True
 
+        # we have finished mapping
         if msg.lap_count > 0 and self.mapping:
             self.get_logger().info("Lap completed, mapping completed")
             self.mapping = False
