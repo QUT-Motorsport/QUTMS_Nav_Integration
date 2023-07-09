@@ -34,31 +34,31 @@ def generate_launch_description():
                     ('odometry/filtered', 'odometry/global')]
     )
 
-    async_slam_toolbox_node = launch_ros.actions.Node(
-        package="slam_toolbox",
-        executable="async_slam_toolbox_node",
-        name="slam_toolbox",
-        output="screen",
-        parameters=[
-            os.path.join(pkg_share, "config/slam_params.yaml"),
-            {"use_sim_time": LaunchConfiguration("use_sim_time")},
-        ],
-        remappings=[
-            ("/pose", "/slam/car_pose"),
-        ],
-    )
-    assocation_node = launch_ros.actions.Node(
-        package="cone_association",
-        executable="mapping2",
-        name="cone_association_node",
-        output="screen",
-    )
-    pose_history_node = launch_ros.actions.Node(
-        package="evaluation",
-        executable="pose_history",
-        name="pose_history_node",
-        output="screen",
-    )
+    # async_slam_toolbox_node = launch_ros.actions.Node(
+    #     package="slam_toolbox",
+    #     executable="async_slam_toolbox_node",
+    #     name="slam_toolbox",
+    #     output="screen",
+    #     parameters=[
+    #         os.path.join(pkg_share, "config/slam_params.yaml"),
+    #         {"use_sim_time": LaunchConfiguration("use_sim_time")},
+    #     ],
+    #     remappings=[
+    #         ("/pose", "/slam/car_pose"),
+    #     ],
+    # )
+    # assocation_node = launch_ros.actions.Node(
+    #     package="cone_association",
+    #     executable="mapping2",
+    #     name="cone_association_node",
+    #     output="screen",
+    # )
+    # pose_history_node = launch_ros.actions.Node(
+    #     package="evaluation",
+    #     executable="pose_history",
+    #     name="pose_history_node",
+    #     output="screen",
+    # )
     return launch.LaunchDescription(
         [
             launch.actions.DeclareLaunchArgument(
