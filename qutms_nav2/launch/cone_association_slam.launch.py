@@ -10,6 +10,7 @@ from launch.substitutions import Command, LaunchConfiguration
 def generate_launch_description():
     pkg_share = get_package_share_path("qutms_nav2")
 
+    # Community ROS 2 packages
     localisation_node = Node(
         package="robot_localization",
         executable="ekf_node",
@@ -33,16 +34,16 @@ def generate_launch_description():
             ("/pose", "/slam/car_pose"),
         ],
     )
+
+    # Custom packages
     assocation_node = Node(
         package="cone_association",
-        executable="mapping2",
-        name="cone_association_node",
+        executable="cone_placement",
         output="screen",
     )
     pose_history_node = Node(
         package="evaluation",
         executable="pose_history",
-        name="pose_history_node",
         output="screen",
     )
     return launch.LaunchDescription(
