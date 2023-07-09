@@ -5,9 +5,8 @@ from typing import Optional, Tuple
 import numpy as np
 import rclpy
 from driverless_msgs.msg import (Cone, ConeDetectionStamped,
-                                 ConeWithCovariance, Reset)
+                                 ConeWithCovariance, State)
 from geometry_msgs.msg import Point
-from std_msgs.msg import UInt8
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 from sklearn.neighbors import KDTree
@@ -31,10 +30,10 @@ class ConeAssociation(Node):
     last_time = time.time()
 
     detection_count = 0
-    mapping = True
+    mapping = False
 
     def __init__(self):
-        super().__init__("sbg_slam_node")
+        super().__init__("cone_association_node")
 
         self.create_subscription(
             ConeDetectionStamped, "/lidar/cone_detection", self.callback, 1
@@ -42,8 +41,7 @@ class ConeAssociation(Node):
         self.create_subscription(
             ConeDetectionStamped, "/vision/cone_detection", self.callback, 1
         )
-        self.create_subscription(Reset, "/system/reset", self.reset_callback, 10)
-        self.create_subscription(UInt8, "/system/laps_completed", self.lap_callback, 10)
+        self.create_subscription(State, "/system/as_status", self.state_callback, 1)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -58,22 +56,19 @@ class ConeAssociation(Node):
 
         self.get_logger().info("---SLAM node initialised---")
 
-    def reset_callback(self, msg):
-        self.get_logger().info("Resetting Map")
-        self.state = None
-        self.track = None
-        self.last_time = time.time()
+    def state_callback(self, msg: State):
+        if msg.mission == State.TRACKDRIVE and msg.state == State.DRIVING:
+            self.mapping = True
 
-    def lap_callback(self, msg: UInt8):
-        if msg.data > 0:
+        if msg.lap_count > 0 and self.mapping:
             self.get_logger().info("Lap completed, mapping completed")
             self.mapping = False
 
     def callback(self, msg: ConeDetectionStamped):
-        start: float = time.perf_counter()
-
         if not self.mapping:
             return
+
+        start: float = time.perf_counter()
 
         # skip if no transform received
         try:

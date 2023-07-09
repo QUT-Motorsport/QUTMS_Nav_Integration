@@ -23,8 +23,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "mapping = cone_association.node_mapping:main",
-            "mapping2 = cone_association.node_mapping2:main",
+            "cone_placement = cone_association.node_cone_placement:main",
         ],
     },
 )
