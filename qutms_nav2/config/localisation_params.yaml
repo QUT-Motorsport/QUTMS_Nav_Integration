@@ -11,7 +11,7 @@ odom_filter_node:
 #         from robot_localization! However, that instance should *not* fuse the global data.
         map_frame: track               # Defaults to "map" if unspecified
         odom_frame: odom            # Defaults to "odom" if unspecified
-        base_link_frame: base_footprint  # Defaults to "base_link" ifunspecified
+        base_link_frame: base_link  # Defaults to "base_link" ifunspecified
         world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
         odom0: vehicle/wheel_odom
