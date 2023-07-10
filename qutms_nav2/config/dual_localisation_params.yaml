@@ -35,9 +35,6 @@ odom_filter_node:
                   false, false, false,
                   false, false, false,
                   false, false, false]
-    odom1_queue_size: 10
-    odom1_differential: false
-    odom1_relative: false
 
     frequency: 50.0
     two_d_mode: true
@@ -47,7 +44,7 @@ odom_filter_node:
 
 navsat_transform_node:
   ros__parameters:
-    frequency: 30.0
+    frequency: 20.0
     delay: 0.0
     magnetic_declination_radians: 0.0 # 0.0429351  # For lat/long 55.944831, -3.186998
     yaw_offset: 0.0 # 1.570796327  # IMU reads 0 facing magnetic north, not east

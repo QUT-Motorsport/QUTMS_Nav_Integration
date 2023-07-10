@@ -29,9 +29,7 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/dual_localisation_params.yaml"),
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
-        remappings=[('gps/fix', 'imu/navsat_fix'),
-                    ('odometry/gps', 'odometry/gps'),
-                    ('odometry/filtered', 'odometry/global')]
+        remappings=[('gps/fix', 'imu/nav_sat_fix'), ('imu', 'imu/data')]
     )
 
     # async_slam_toolbox_node = launch_ros.actions.Node(
