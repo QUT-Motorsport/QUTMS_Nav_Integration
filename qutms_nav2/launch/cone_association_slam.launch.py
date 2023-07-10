@@ -17,9 +17,20 @@ def generate_launch_description():
         name="odom_filter_node",
         output="screen",
         parameters=[
-            os.path.join(pkg_share, "config/localisation_params.yaml"),
+            os.path.join(pkg_share, "config/dual_localisation_params.yaml"),
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
+    )
+    navsat_transform_node = Node(
+        package="robot_localization",
+        executable="navsat_transform_node",
+        name="navsat_transform_node",
+        output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/dual_localisation_params.yaml"),
+            {"use_sim_time": LaunchConfiguration("use_sim_time")},
+        ],
+        remappings=[('gps/fix', 'imu/nav_sat_fix'), ('imu', 'imu/data')]
     )
     async_slam_toolbox_node = Node(
         package="slam_toolbox",
@@ -54,6 +65,7 @@ def generate_launch_description():
                 description="Flag to enable use_sim_time",
             ),
             localisation_node,
+            navsat_transform_node,
             async_slam_toolbox_node,
             assocation_node,
             pose_history_node,
