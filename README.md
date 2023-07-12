@@ -17,7 +17,7 @@ rosdep install --from-paths src --ignore-src -r -y
 
 Assuming the sim and stack have been built already
 ```
-colcon build --symlink-install --packages-up-to fs_nav2
+colcon build --symlink-install --packages-up-to qutms_nav2
 ```
 
 ## Running with EUFS Sim
