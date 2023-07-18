@@ -2,7 +2,7 @@ bt_navigator:
   ros__parameters:
     use_sim_time: True
     global_frame: track
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 20
@@ -132,7 +132,7 @@ local_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: track
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: True
       rolling_window: true
       width: 10
@@ -181,7 +181,7 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       global_frame: track
-      robot_base_frame: base_link
+      robot_base_frame: base_footprint
       use_sim_time: True
       robot_radius: 1.2
       resolution: 0.1
@@ -257,7 +257,7 @@ recoveries_server:
     wait:
       plugin: "nav2_recoveries/Wait"
     global_frame: track
-    robot_base_frame: base_link
+    robot_base_frame: base_footprint
     transform_timeout: 0.1
     use_sim_time: true
     simulate_ahead_time: 2.0

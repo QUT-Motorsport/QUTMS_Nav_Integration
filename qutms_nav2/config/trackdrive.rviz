@@ -65,7 +65,7 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_link:
+        base_footprint:
           Alpha: 1
           Show Axes: false
           Show Trail: false

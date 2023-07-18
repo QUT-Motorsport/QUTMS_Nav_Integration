@@ -75,7 +75,7 @@ class ConeAssociation(Node):
         # skip if no transform received
         try:
             map_to_base = self.tf_buffer.lookup_transform(
-                "track", "base_link", rclpy.time.Time()
+                "track", "base_footprint", rclpy.time.Time()
             )
         except TransformException as e:
             self.get_logger().warn("Transform exception: " + str(e))
@@ -250,7 +250,7 @@ class ConeAssociation(Node):
 
         local_map_msg = ConeDetectionStamped()
         local_map_msg.header.stamp = msg.header.stamp
-        local_map_msg.header.frame_id = "base_link"
+        local_map_msg.header.frame_id = "base_footprint"
 
         # get the location of the cones in the car frame
         for cone in self.track:
