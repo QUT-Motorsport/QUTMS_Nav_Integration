@@ -68,6 +68,6 @@ def generate_launch_description():
             navsat_transform_node,
             async_slam_toolbox_node,
             assocation_node,
-            pose_history_node,
+            # pose_history_node,
         ]
     )
