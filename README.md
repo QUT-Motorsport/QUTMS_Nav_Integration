@@ -10,7 +10,7 @@ mamba install --file conda_requirements
 
 If not using Robostack
 ```
-rosdep install --from-paths src --ignore-src -r -y
+rosdep install --from-paths QUTMS_Nav_Integration --ignore-src -r -y
 ```
 
 ## Building
@@ -26,10 +26,5 @@ Launch the simulation in one terminal
 ```
 ros2 launch eufs_launcher eufs_launcher.launch.py
 ```
-Launch with `'RViz'`, `'Use Simulated Perception'`, `'Publish Ground Truth'`, `'Lidar'` options
+Checkbox options for running mapping nodes: `'RViz'`, `'Use Simulated Perception'`, `'Publish Ground Truth'`, `'Laserscan'`
 
-
-Launch the navigation stack in another terminal
-```
-ros2 launch fs_nav2 nav2.launch.py
-```
