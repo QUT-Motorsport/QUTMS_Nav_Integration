@@ -32,6 +32,7 @@ class ConeAssociation(Node):
 
     detection_count = 0
     mapping = False
+    counter = 0
 
     def __init__(self):
         super().__init__("cone_association_node")
@@ -231,11 +232,14 @@ class ConeAssociation(Node):
         local_map_msg = self.get_local_map(msg)
         self.local_publisher.publish(local_map_msg)
 
-        if time.time() - self.last_time > 1:
-            self.get_logger().debug(
-                f"Wait time: {str(time.perf_counter()-start)}"
+        # turn map into a
+
+        if self.counter == 20:
+            self.get_logger().info(
+                f"Wait time: {(time.perf_counter()-start) * 1000}"
             )  # log time
             self.last_time = time.time()
+            self.counter = 0
 
     def get_local_map(self, msg: ConeDetectionStamped) -> np.ndarray:
         """

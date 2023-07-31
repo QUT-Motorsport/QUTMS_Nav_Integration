@@ -24,6 +24,7 @@ setup(
     entry_points={
         "console_scripts": [
             "cone_placement = cone_association.node_cone_placement:main",
+            "map_interpolation = cone_association.node_map_interpolation:main",
         ],
     },
 )
