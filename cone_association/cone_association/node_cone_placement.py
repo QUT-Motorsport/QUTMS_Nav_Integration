@@ -32,7 +32,10 @@ class ConeAssociation(Node):
 
     detection_count = 0
     mapping = False
+    active = False
     counter = 0
+    current_track = None
+    current_local_track = None
 
     def __init__(self):
         super().__init__("cone_association_node")
@@ -64,6 +67,7 @@ class ConeAssociation(Node):
         # we haven't started driving yet
         if msg.state == State.DRIVING and msg.lap_count == 0:
             self.mapping = True
+            self.active = True
 
         # we have finished mapping
         if msg.lap_count > 0 and self.mapping:
@@ -71,7 +75,13 @@ class ConeAssociation(Node):
             self.mapping = False
 
     def callback(self, msg: ConeDetectionStamped):
-        if not self.mapping:
+        if not self.active:
+            return
+        
+        # mapping has stopped, but continue publishing last map
+        if self.active and not self.mapping:
+            self.slam_publisher.publish(self.current_track)
+            self.local_publisher.publish(self.current_local_track)
             return
 
         start: float = time.perf_counter()
@@ -229,10 +239,11 @@ class ConeAssociation(Node):
         self.slam_publisher.publish(track_msg)
 
         # publish local map msg
-        local_map_msg = self.get_local_map(msg)
-        self.local_publisher.publish(local_map_msg)
+        local_track_msg = self.get_local_map(msg)
+        self.local_publisher.publish(local_track_msg)
 
-        # turn map into a
+        self.current_track = track_msg
+        self.current_local_track = local_track_msg
 
         if self.counter == 20:
             self.get_logger().info(
