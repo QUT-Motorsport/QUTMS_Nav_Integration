@@ -2,6 +2,7 @@ bt_navigator:
   ros__parameters:
     use_sim_time: True
     global_frame: track
+    local_frame: odom
     robot_base_frame: base_footprint
     odom_topic: /odom
     bt_loop_duration: 10
@@ -129,8 +130,8 @@ controller_server_rclcpp_node:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 5.0
-      publish_frequency: 2.0
+      update_frequency: 10.0
+      publish_frequency: 10.0
       global_frame: track
       robot_base_frame: base_footprint
       use_sim_time: True
@@ -143,8 +144,8 @@ local_costmap:
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 4.0
-        inflation_radius: 2.0
+        cost_scaling_factor: 2.0
+        inflation_radius: 1.5
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -206,8 +207,8 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 4.0
-        inflation_radius: 2.0
+        cost_scaling_factor: 2.0
+        inflation_radius: 1.5
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
@@ -215,19 +216,6 @@ global_costmap:
   global_costmap_rclcpp_node:
     ros__parameters:
       use_sim_time: True
-
-map_server:
-  ros__parameters:
-    use_sim_time: True
-    yaml_filename: "turtlebot3_world.yaml"
-
-map_saver:
-  ros__parameters:
-    use_sim_time: True
-    save_map_timeout: 5.0
-    free_thresh_default: 0.25
-    occupied_thresh_default: 0.65
-    map_subscribe_transient_local: True
 
 planner_server:
   ros__parameters:
@@ -264,10 +252,6 @@ recoveries_server:
     max_rotational_vel: 1.0
     min_rotational_vel: 0.4
     rotational_acc_lim: 3.2
-
-robot_state_publisher:
-  ros__parameters:
-    use_sim_time: True
 
 waypoint_follower:
   ros__parameters:
