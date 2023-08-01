@@ -5,6 +5,7 @@ import scipy.interpolate as scipy_interpolate
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 
 from driverless_msgs.msg import Cone, ConeDetectionStamped, State
 from nav_msgs.msg import OccupancyGrid
@@ -158,7 +159,15 @@ class OrderedMapSpline(Node):
         self.create_timer(1/20, self.map_processing_callback)
 
         # publishers
-        self.map_pub = self.create_publisher(OccupancyGrid, "/planning/boundary_grid", 10)
+        # rclcpp::KeepLast(1)).transient_local().reliable()
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        )
+
+        self.map_pub = self.create_publisher(OccupancyGrid, "/map", qos_profile)
 
         self.get_logger().info("---Ordered path planner node initalised---")
 
@@ -208,8 +217,12 @@ class OrderedMapSpline(Node):
             else:
                 grid[y-1:y+1, x-1:x+1] = 100
 
-        map.data = grid.ravel().tolist()
+        # make a wall of points at 0,0 to prevent the car from driving backwards
+        x_offset_cell = int((0 - x_offset)/map.info.resolution)
+        y_offset_cell = int((0 - y_offset)/map.info.resolution)
+        grid[y_offset_cell-20:y_offset_cell+20, x_offset_cell+30:x_offset_cell+31] = 100
 
+        map.data = grid.ravel().tolist()
         return map
 
     def map_processing_callback(self):
@@ -264,6 +277,7 @@ class OrderedMapSpline(Node):
         map = self.get_occupancy_grid(bx, by, yx, yy)
         self.current_map = map
         self.map_pub.publish(self.current_map)
+        self.final_path_published = True
 
 def main(args=None):
     # begin ros node
