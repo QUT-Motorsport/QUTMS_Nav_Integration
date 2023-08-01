@@ -7,7 +7,6 @@ import rclpy
 from rclpy.node import Node
 
 from driverless_msgs.msg import Cone, ConeDetectionStamped, State
-from std_msgs.msg import UInt8
 from nav_msgs.msg import OccupancyGrid
 
 from typing import List, Tuple
@@ -156,7 +155,7 @@ class OrderedMapSpline(Node):
         # sub to track for all cone locations relative to car start point
         self.create_subscription(ConeDetectionStamped, "/slam/global_map", self.map_callback, 10)
         self.create_subscription(State, "/system/as_status", self.state_callback, 1)
-        self.create_timer(1/20, self.planning_callback)
+        self.create_timer(1/20, self.map_processing_callback)
 
         # publishers
         self.map_pub = self.create_publisher(OccupancyGrid, "/planning/boundary_grid", 10)
@@ -183,49 +182,37 @@ class OrderedMapSpline(Node):
         map.info.map_load_time = self.current_track.header.stamp
 
         # get max and min x and y values for each side of the track
-        blue_x_min = min(bx)
-        blue_y_min = min(by)
-        yellow_x_min = min(yx)
-        yellow_y_min = min(yy)
+        x_offset = min(bx)
+        y_offset = min(by)
 
         # offset track so minimum is 0
-        bx_cells = [int((x - blue_x_min)/map.info.resolution) for x in bx]
-        by_cells = [int((y - blue_y_min)/map.info.resolution) for y in by]
-        yx_cells = [int((x - yellow_x_min)/map.info.resolution) for x in yx]
-        yy_cells = [int((y - yellow_y_min)/map.info.resolution) for y in yy]
+        bx_cells = [int((x - x_offset)/map.info.resolution) for x in bx]
+        by_cells = [int((y - y_offset)/map.info.resolution) for y in by]
+        yx_cells = [int((x - x_offset)/map.info.resolution) for x in yx]
+        yy_cells = [int((y - y_offset)/map.info.resolution) for y in yy]
 
         # get track properties
         map.info.width = max(bx_cells)+1
         map.info.height = max(by_cells)+1
-        map.info.origin.position.x = -min(blue_x_min, yellow_x_min)
-        map.info.origin.position.y = -min(blue_y_min, yellow_y_min)
+        map.info.origin.position.x = x_offset
+        map.info.origin.position.y = y_offset
 
         # turn points into a 2D np array
         bounds = np.array([[x_cells, y_cells] for x_cells, y_cells in zip(bx_cells+yx_cells, by_cells+yy_cells)])
-        grid = np.zeros((map.info.width, map.info.height), dtype=np.int8)
+        grid = np.zeros((map.info.height, map.info.width), dtype=np.int8)
         for x, y in bounds:
-            grid[x, y] = 1
+            # pad around each point a bit
+            if (x == 0) or (x == map.info.width-1) or (y == 0) or (y == map.info.height-1):
+                # cant pad if on edge of map
+                grid[y:y+1, x:x+1] = 100
+            else:
+                grid[y-1:y+1, x-1:x+1] = 100
+
         map.data = grid.ravel().tolist()
-
-        # cells = -np.ones((30, 30), np.int8)
-        # cells[10:20, 10:20] = 100
-
-        # if not len(cells.shape) == 2:
-        #     raise TypeError('Array must be 2D')
-        # if not cells.dtype == np.int8:
-        #     raise TypeError('Array must be of int8s')
-
-        # map = OccupancyGrid()
-        # if isinstance(cells, np.ma.MaskedArray):
-        #     # We assume that the masked value are already -1, for speed
-        #     cells = cells.data
-        # map.data = cells.ravel().tolist()
-        # map.info.height = cells.shape[0]
-        # map.info.width = cells.shape[1]
 
         return map
 
-    def planning_callback(self):
+    def map_processing_callback(self):
         # skip if we haven't completed a lap yet
         if (not self.planning) or (self.current_track is None):
             return
@@ -259,6 +246,8 @@ class OrderedMapSpline(Node):
         # Sort the blue and yellow cones starting from the far orange cone, and ending at the close orange cone.
         ordered_blues = sort_cones(blues)
         ordered_yellows = sort_cones(yellows)
+        ordered_blues.append(ordered_blues[0])
+        ordered_yellows.append(ordered_yellows[0])
 
         ## Spline smoothing
         # make number of pts based on length of path
@@ -271,9 +260,9 @@ class OrderedMapSpline(Node):
             [cone[0] for cone in ordered_blues], [cone[1] for cone in ordered_blues], spline_len
         )
 
+        ## Create occupancy grid of interpolated bounds
         map = self.get_occupancy_grid(bx, by, yx, yy)
-        if self.current_map is None:
-            self.current_map = map
+        self.current_map = map
         self.map_pub.publish(self.current_map)
 
 def main(args=None):
