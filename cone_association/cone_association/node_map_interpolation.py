@@ -143,11 +143,9 @@ def parse_orange_cones(logger, orange_cones: List[List[float]]) -> List[List[flo
 
 class OrderedMapSpline(Node):
     spline_const = 10  # number of points per cone
-    segment = int(spline_const * 0.1)  # percentage of PPC
     planning = False
     final_path_published = False
     current_track = None
-    interp_cone_num = 3  # number of points interpolated between each pair of cones
     current_map = None
 
     def __init__(self):
@@ -159,17 +157,15 @@ class OrderedMapSpline(Node):
         self.create_timer(1/20, self.map_processing_callback)
 
         # publishers
-        # rclcpp::KeepLast(1)).transient_local().reliable()
-        qos_profile = QoSProfile(
+        map_qos = QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=1,
             durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
+        self.map_pub = self.create_publisher(OccupancyGrid, "/map", map_qos)
 
-        self.map_pub = self.create_publisher(OccupancyGrid, "/map", qos_profile)
-
-        self.get_logger().info("---Ordered path planner node initalised---")
+        self.get_logger().info("---Boundary planner node initalised---")
 
     def state_callback(self, msg: State):
         if msg.state == State.DRIVING and msg.lap_count > 0 and not self.planning:
@@ -220,7 +216,7 @@ class OrderedMapSpline(Node):
         # make a wall of points at 0,0 to prevent the car from driving backwards
         x_offset_cell = int((0 - x_offset)/map.info.resolution)
         y_offset_cell = int((0 - y_offset)/map.info.resolution)
-        grid[y_offset_cell-20:y_offset_cell+20, x_offset_cell+30:x_offset_cell+31] = 100
+        grid[y_offset_cell-20:y_offset_cell+20, x_offset_cell+20:x_offset_cell+24] = 100
 
         map.data = grid.ravel().tolist()
         return map
@@ -277,7 +273,7 @@ class OrderedMapSpline(Node):
         map = self.get_occupancy_grid(bx, by, yx, yy)
         self.current_map = map
         self.map_pub.publish(self.current_map)
-        self.final_path_published = True
+        # self.final_path_published = True
 
 def main(args=None):
     # begin ros node

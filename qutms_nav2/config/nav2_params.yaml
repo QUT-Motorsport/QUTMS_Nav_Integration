@@ -1,10 +1,12 @@
-bt_navigator:
+/**:
   ros__parameters:
     use_sim_time: True
     global_frame: track
     local_frame: odom
     robot_base_frame: base_footprint
-    odom_topic: /odom
+
+bt_navigator:
+  ros__parameters:
     bt_loop_duration: 10
     default_server_timeout: 20
     enable_groot_monitoring: True
@@ -48,13 +50,8 @@ bt_navigator:
     - nav2_controller_selector_bt_node
     - nav2_goal_checker_selector_bt_node
 
-bt_navigator_rclcpp_node:
-  ros__parameters:
-    use_sim_time: True
-
 controller_server:
   ros__parameters:
-    use_sim_time: True
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.5
@@ -123,21 +120,14 @@ controller_server:
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
 
-controller_server_rclcpp_node:
-  ros__parameters:
-    use_sim_time: True
-
 local_costmap:
   local_costmap:
     ros__parameters:
       update_frequency: 10.0
       publish_frequency: 10.0
-      global_frame: track
-      robot_base_frame: base_footprint
-      use_sim_time: True
       rolling_window: true
       width: 10
-      height: 20
+      height: 10
       resolution: 0.05
       robot_radius: 1.2
       # footprint: "[ [0.21, 0.195], [0.21, -0.195], [-0.21, -0.195], [-0.21, 0.195] ]"
@@ -169,21 +159,12 @@ local_costmap:
       static_layer:
         map_subscribe_transient_local: True
       always_send_full_costmap: True
-  local_costmap_client:
-    ros__parameters:
-      use_sim_time: True
-  local_costmap_rclcpp_node:
-    ros__parameters:
-      use_sim_time: True
 
 global_costmap:
   global_costmap:
     ros__parameters:
       update_frequency: 1.0
       publish_frequency: 1.0
-      global_frame: track
-      robot_base_frame: base_footprint
-      use_sim_time: True
       robot_radius: 1.2
       resolution: 0.1
       track_unknown_space: true
@@ -210,27 +191,16 @@ global_costmap:
         cost_scaling_factor: 2.0
         inflation_radius: 1.5
       always_send_full_costmap: True
-  global_costmap_client:
-    ros__parameters:
-      use_sim_time: True
-  global_costmap_rclcpp_node:
-    ros__parameters:
-      use_sim_time: True
 
 planner_server:
   ros__parameters:
     expected_planner_frequency: 20.0
-    use_sim_time: True
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
       tolerance: 0.5
       use_astar: false
       allow_unknown: true
-
-planner_server_rclcpp_node:
-  ros__parameters:
-    use_sim_time: True
 
 recoveries_server:
   ros__parameters:
@@ -244,10 +214,7 @@ recoveries_server:
       plugin: "nav2_recoveries/BackUp"
     wait:
       plugin: "nav2_recoveries/Wait"
-    global_frame: track
-    robot_base_frame: base_footprint
     transform_timeout: 0.1
-    use_sim_time: true
     simulate_ahead_time: 2.0
     max_rotational_vel: 1.0
     min_rotational_vel: 0.4
