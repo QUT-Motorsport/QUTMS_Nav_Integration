@@ -3,6 +3,10 @@ from math import atan2, cos, pi, sin, sqrt, atan
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+import time
+import numpy as np
+
+from transforms3d.euler import euler2quat
 
 import rclpy
 from rclpy.node import Node
@@ -17,7 +21,7 @@ def convert_trans_rot_vel_to_steering_angle(vel, omega, wheelbase):
         return 0.0
 
     radius = vel / omega
-    return atan(wheelbase / radius) * (180 / pi)
+    return atan(wheelbase / radius) * (180 / pi) * 5
 
 
 class Nav2Commands(Node):
@@ -44,7 +48,7 @@ class Nav2Commands(Node):
 
     def state_callback(self, msg: State):
         # we haven't started driving yet
-        if msg.state == State.DRIVING and msg.lap_count == 0:
+        if msg.state == State.DRIVING:
             self.driving = True
 
         # we have finished a lap
@@ -61,18 +65,37 @@ class Nav2Commands(Node):
             self.get_logger().warn("Transform exception: " + str(e))
             return
 
+        time.sleep(1)
+
         init_pose_msg = PoseWithCovarianceStamped()
-        init_pose_msg.header = track_to_base.header
+        init_pose_msg.header.stamp = track_to_base.header.stamp
+        init_pose_msg.header.frame_id = "track"
         # convert translation to pose
         init_pose_msg.pose.pose.position.x = track_to_base.transform.translation.x
         init_pose_msg.pose.pose.position.y = track_to_base.transform.translation.y
+        init_pose_msg.pose.pose.position.z = track_to_base.transform.translation.z
         init_pose_msg.pose.pose.orientation = track_to_base.transform.rotation
+        # cov diag to square
+        diag = np.diag([0.25, 0.25, 0.0, 0.0, 0.0, 0.06]).astype(np.float32)
+        init_pose_msg.pose.covariance = diag.flatten().tolist()
         self.init_pose_pub.publish(init_pose_msg)
 
+        time.sleep(1)
+
         goal_pose_msg = PoseStamped()
-        goal_pose_msg.header = track_to_base.header
-        goal_pose_msg.pose.position.x = 0.0
-        goal_pose_msg.pose.position.y = 0.0
+        goal_pose_msg.header.stamp = track_to_base.header.stamp
+        goal_pose_msg.header.frame_id = "track"
+        goal_pose_msg.pose.position.x = -0.2
+        goal_pose_msg.pose.position.y = -0.2
+        goal_pose_msg.pose.position.z = 0.0
+
+        # convert euler to quaternion
+        quat = euler2quat(0.0, 0.0, 0.3)
+        goal_pose_msg.pose.orientation.x = quat[1]
+        goal_pose_msg.pose.orientation.y = quat[2]
+        goal_pose_msg.pose.orientation.z = quat[3]
+        goal_pose_msg.pose.orientation.w = quat[0]
+        
         self.goal_pose_pub.publish(goal_pose_msg)
 
         self.get_logger().info("Publishing initial and goal poses")
@@ -83,7 +106,7 @@ class Nav2Commands(Node):
         if not (self.driving and self.following):
             return
 
-        vel = twist_msg.linear.x * 6
+        vel = twist_msg.linear.x
         steering = convert_trans_rot_vel_to_steering_angle(
             vel, 
             twist_msg.angular.z, 
@@ -94,7 +117,7 @@ class Nav2Commands(Node):
         # make time for msg id
         # msg.header.stamp = 
         msg.header.frame_id = "base_footprint"
-        msg.drive.steering_angle = steering * 2
+        msg.drive.steering_angle = steering
         msg.drive.speed = vel
         
         self.drive_pub.publish(msg)

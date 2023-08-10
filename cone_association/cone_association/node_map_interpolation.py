@@ -213,10 +213,10 @@ class OrderedMapSpline(Node):
             else:
                 grid[y-1:y+1, x-1:x+1] = 100
 
-        # make a wall of points at 0,0 to prevent the car from driving backwards
-        x_offset_cell = int((0 - x_offset)/map.info.resolution)
-        y_offset_cell = int((0 - y_offset)/map.info.resolution)
-        grid[y_offset_cell-20:y_offset_cell+20, x_offset_cell+20:x_offset_cell+24] = 100
+        # # make a wall of points at 0,0 to prevent the car from driving backwards
+        # x_offset_cell = int((0 - x_offset)/map.info.resolution)
+        # y_offset_cell = int((0 - y_offset)/map.info.resolution)
+        # grid[y_offset_cell-20:y_offset_cell+20, x_offset_cell+20:x_offset_cell+24] = 100
 
         map.data = grid.ravel().tolist()
         return map
