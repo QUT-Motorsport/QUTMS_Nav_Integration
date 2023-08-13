@@ -10,12 +10,15 @@ bt_navigator:
   ros__parameters:
     bt_loop_duration: 10
     default_server_timeout: 20
-    enable_groot_monitoring: True
-    groot_zmq_publisher_port: 1666
-    groot_zmq_server_port: 1667
+    navigators: ["navigate_to_pose"]
+    navigate_to_pose:
+      plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
+    # navigate_through_poses:
+    #   plugin: "nav2_bt_navigator/NavigateThroughPosesNavigator"
+
     # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
-    # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
-    # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
+    # placeholder here as yaml gets re-written so these keys need to be active
+    default_nav_to_pose_bt_xml: placeholder # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
     # They can be set here or via a RewrittenYaml remap from a parent launch file to Nav2.
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
@@ -140,15 +143,15 @@ planner_server:
       analytic_expansion_ratio: 3.5       # For Hybrid/Lattice nodes: The ratio to attempt analytic expansions during search for final approach.
       analytic_expansion_max_length: 3.0    # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting (in meters). This should be scaled with minimum turning radius and be no less than 4-5x the minimum radius
       minimum_turning_radius: 4.0        # For Hybrid/Lattice nodes: minimum turning radius in m of path / vehicle
-      reverse_penalty: 2.1                # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
+      # reverse_penalty: 2.1                # For Reeds-Shepp model: penalty to apply if motion is reversing, must be => 1
       change_penalty: 0.0                 # For Hybrid nodes: penalty to apply if motion is changing directions, must be >= 0
       non_straight_penalty: 1.50          # For Hybrid nodes: penalty to apply if motion is non-straight, must be => 1
       cost_penalty: 1.0                   # For Hybrid nodes: penalty to apply to higher cost areas when adding into the obstacle map dynamic programming distance expansion heuristic. This drives the robot more towards the center of passages. A value between 1.3 - 3.5 is reasonable.
       retrospective_penalty: 0.025        # For Hybrid/Lattice nodes: penalty to prefer later maneuvers before earlier along the path. Saves search time since earlier nodes are not expanded until it is necessary. Must be >= 0.0 and <= 1.0
-      rotation_penalty: 5.0               # For Lattice node: Penalty to apply only to pure rotate in place commands when using minimum control sets containing rotate in place primitives. This should always be set sufficiently high to weight against this action unless strictly necessary for obstacle avoidance or there may be frequent discontinuities in the plan where it requests the robot to rotate in place to short-cut an otherwise smooth path for marginal path distance savings.
+      # rotation_penalty: 3.0               # For Lattice node: Penalty to apply only to pure rotate in place commands when using minimum control sets containing rotate in place primitives. This should always be set sufficiently high to weight against this action unless strictly necessary for obstacle avoidance or there may be frequent discontinuities in the plan where it requests the robot to rotate in place to short-cut an otherwise smooth path for marginal path distance savings.
       lookup_table_size: 20.0               # For Hybrid nodes: Size of the dubin/reeds-sheep distance window to cache, in meters.
       cache_obstacle_heuristic: True      # For Hybrid nodes: Cache the obstacle map dynamic programming distance expansion heuristic between subsiquent replannings of the same goal location. Dramatically speeds up replanning performance (40x) if costmap is largely static.  
-      allow_reverse_expansion: False      # For Lattice nodes: Whether to expand state lattice graph in forward primitives or reverse as well, will double the branching factor at each step.   
+      # allow_reverse_expansion: False      # For Lattice nodes: Whether to expand state lattice graph in forward primitives or reverse as well, will double the branching factor at each step.   
       smooth_path: True                   # For Lattice/Hybrid nodes: Whether or not to smooth the path, always true for 2D nodes.
       debug_visualizations: False                # For Hybrid nodes: Whether to publish expansions on the /expansions topic as an array of poses (the orientation has no meaning) and the path's footprints on the /planned_footprints topic. WARNING: heavy to compute and to display, for debug only as it degrades the performance. 
 
@@ -177,13 +180,13 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.01
+      yaw_goal_tolerance: 0.01
     # DWB parameters
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 4.0
-      lookahead_dist: 3.0
+      desired_linear_vel: 8.0
+      lookahead_dist: 4.0
       min_lookahead_dist: 3.0  # not required when use_velocity_scaled_lookahead_dist is false
       max_lookahead_dist: 5.0  # not required when use_velocity_scaled_lookahead_dist is false
       lookahead_time: 1.5  # not required when use_velocity_scaled_lookahead_dist is true
@@ -202,37 +205,23 @@ controller_server:
       curvature_lookahead_dist: 1.0
       use_rotate_to_heading: false
       rotate_to_heading_min_angle: 0.785
-      max_angular_accel: 3.2
+      max_angular_accel: 6.0
       max_robot_pose_search_dist: 20.0
       use_interpolation: false
       cost_scaling_dist: 1.0
       cost_scaling_gain: 1.0
       inflation_cost_scaling_factor: 0.5
 
-waypoint_follower:
-  ros__parameters:
-    loop_rate: 20
-    stop_on_failure: false
-    waypoint_task_executor_plugin: "wait_at_waypoint"
-    wait_at_waypoint:
-      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
-      enabled: True
-      waypoint_pause_duration: 200
-
-recoveries_server:
-  ros__parameters:
-    costmap_topic: local_costmap/costmap_raw
-    footprint_topic: local_costmap/published_footprint
-    cycle_frequency: 10.0
-    recovery_plugins: ["spin", "backup", "wait"]
-    spin:
-      plugin: "nav2_recoveries/Spin"
-    backup:
-      plugin: "nav2_recoveries/BackUp"
-    wait:
-      plugin: "nav2_recoveries/Wait"
-    transform_timeout: 0.1
-    simulate_ahead_time: 2.0
-    max_rotational_vel: 1.0
-    min_rotational_vel: 0.4
-    rotational_acc_lim: 3.2
+# recoveries_server:
+#   ros__parameters:
+#     costmap_topic: local_costmap/costmap_raw
+#     footprint_topic: local_costmap/published_footprint
+#     cycle_frequency: 10.0
+#     recovery_plugins: ["wait"]
+#     wait:
+#       plugin: "nav2_recoveries/Wait"
+#     transform_timeout: 0.1
+#     simulate_ahead_time: 2.0
+#     max_rotational_vel: 1.0
+#     min_rotational_vel: 0.4
+#     rotational_acc_lim: 3.2

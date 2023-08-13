@@ -40,8 +40,7 @@ def generate_launch_description():
     lifecycle_nodes = ['controller_server',
                        'planner_server',
                        'behavior_server',
-                       'bt_navigator',
-                       'waypoint_follower']
+                       'bt_navigator']
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -50,11 +49,21 @@ def generate_launch_description():
     # TODO(orduno) Substitute with `PushNodeRemapping`
     #              https://github.com/ros2/launch_ros/issues/56
     remappings = [('/tf', 'tf'),
-                  ('/tf_static', 'tf_static')]
+                  ('/tf_static', 'tf_static'),
+                  ('cmd_vel', 'control/nav_cmd_vel'),
+                  ('plan', '/planning/global_path')]
+
+    # behaviour tree xml file location
+    bt_xml_file = os.path.join(
+        get_package_share_directory('qutms_nav2'),
+        'behaviour_trees',
+        'simple_global_plan_follow.xml')
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
-        'autostart': autostart}
+        'autostart': autostart,
+        'default_nav_to_pose_bt_xml': bt_xml_file,
+    }
 
     configured_params = RewrittenYaml(
         source_file=params_file,
@@ -103,7 +112,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings + [('cmd_vel', 'cmd_vel_nav')]),
+                remappings=remappings),
             Node(
                 package='nav2_planner',
                 executable='planner_server',
@@ -128,16 +137,6 @@ def generate_launch_description():
                 package='nav2_bt_navigator',
                 executable='bt_navigator',
                 name='bt_navigator',
-                output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_params],
-                arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings),
-            Node(
-                package='nav2_waypoint_follower',
-                executable='waypoint_follower',
-                name='waypoint_follower',
                 output='screen',
                 respawn=use_respawn,
                 respawn_delay=2.0,
