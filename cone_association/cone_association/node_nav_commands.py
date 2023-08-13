@@ -33,10 +33,10 @@ class Nav2Commands(Node):
     def __init__(self):
         super().__init__('nav2_commands')
         
-        self.create_subscription(Twist, "/cmd_vel_nav", self.cmd_callback, 1)
+        self.create_subscription(Twist, "/control/nav_cmd_vel", self.cmd_callback, 1)
         self.create_subscription(State, "/system/as_status", self.state_callback, 1)
 
-        self.create_timer((1 / 50), self.timer_callback)  # 50hz state 'prediction'
+        self.create_timer((1 / 10), self.timer_callback)  # 50hz state 'prediction'
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
