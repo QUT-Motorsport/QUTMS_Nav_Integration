@@ -61,7 +61,7 @@ navsat_transform_node:
   ros__parameters:
     use_sim_time: false
 
-    frequency: 20.0
+    frequency: 5.0
     delay: 0.0
     magnetic_declination_radians: 0.0 # 0.0429351  # For lat/long 55.944831, -3.186998
     yaw_offset: 0.0 # 1.570796327  # IMU reads 0 facing magnetic north, not east
