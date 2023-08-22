@@ -1,25 +1,32 @@
 odom_filter_node:
   ros__parameters:
-# 1. Set the map_frame, odom_frame, and base_link frames to the appropriate frame names for your system.
-#     1a. If your system does not have a map_frame, just remove it, and make sure "world_frame" is set to the value of odom_frame.
-# 2. If you are fusing continuous position data such as wheel encoder odometry, visual odometry, or IMU data, set "world_frame"
-#    to your odom_frame value. This is the default behavior for robot_localization's state estimation nodes.
-# 3. If you are fusing global absolute position data that is subject to discrete jumps (e.g., GPS or position updates from landmark
-#    observations) then:
-#     3a. Set your "world_frame" to your map_frame value
-#     3b. MAKE SURE something else is generating the odom->base_link transform. Note that this can even be another state estimation node
-#         from robot_localization! However, that instance should *not* fuse the global data.
+    # 1. Set the map_frame, odom_frame, and base_link frames to the appropriate frame names for your system.
+    #     1a. If your system does not have a map_frame, just remove it, and make sure "world_frame" is set to the value of odom_frame.
+    # 2. If you are fusing continuous position data such as wheel encoder odometry, visual odometry, or IMU data, set "world_frame"
+    #    to your odom_frame value. This is the default behavior for robot_localization's state estimation nodes.
+    # 3. If you are fusing global absolute position data that is subject to discrete jumps (e.g., GPS or position updates from landmark
+    #    observations) then:
+    #     3a. Set your "world_frame" to your map_frame value
+    #     3b. MAKE SURE something else is generating the odom->base_link transform. Note that this can even be another state estimation node
+    #         from robot_localization! However, that instance should *not* fuse the global data.
     map_frame: track               # Defaults to "map" if unspecified
     odom_frame: odom            # Defaults to "odom" if unspecified
     base_link_frame: base_footprint  # Defaults to "base_link" ifunspecified
     world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
-    odom0: vehicle/wheel_odom
-    odom0_config: [false, false, false,  # x, y, z
-                  false, false, false,  # roll, pitch, yaw
-                  true,  false, false,  # x_dot, y_dot, z_dot
-                  false, false, true,  # roll_dot, pitch_dot, yaw_dot
-                  false, false, false]  # x_ddot, y_ddot, z_ddot
+    odom0: zed2i/zed_node/odom
+    odom0_config: [true, true, false,  # x, y, z
+                   false, false, true,  # roll, pitch, yaw
+                   false, false, false,  # x_dot, y_dot, z_dot
+                   false, false, false,  # roll_dot, pitch_dot, yaw_dot
+                   false, false, false]  # x_ddot, y_ddot, z_ddot
+
+    twist0: vehicle/wheel_twist
+    twist0_config: [false, false, false,  # x, y, z
+                    false, false, false,  # roll, pitch, yaw
+                    true, false, false,  # x_dot, y_dot, z_dot
+                    false, false, true,  # roll_dot, pitch_dot, yaw_dot
+                    false, false, false]  # x_ddot, y_ddot, z_ddot
 
     imu0: imu/data
     imu0_config: [false, false, false,  # x, y, z
