@@ -9,6 +9,7 @@ from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSProfile, QoSReli
 
 from driverless_msgs.msg import Cone, ConeDetectionStamped, State
 from nav_msgs.msg import OccupancyGrid
+from std_msgs.msg import Bool
 
 from typing import List, Tuple
 
@@ -152,8 +153,8 @@ class OrderedMapSpline(Node):
         super().__init__("ordered_map_spline_node")
 
         # sub to track for all cone locations relative to car start point
-        self.create_subscription(ConeDetectionStamped, "/slam/global_map", self.map_callback, 10)
-        self.create_subscription(State, "/system/as_status", self.state_callback, 1)
+        self.create_subscription(ConeDetectionStamped, "slam/global_map", self.map_callback, 10)
+        self.create_subscription(State, "system/as_status", self.state_callback, 1)
         self.create_timer(1/20, self.map_processing_callback)
 
         # publishers
@@ -164,6 +165,7 @@ class OrderedMapSpline(Node):
             durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
         self.map_pub = self.create_publisher(OccupancyGrid, "/map", map_qos)
+        self.map_created_pub = self.create_publisher(Bool, "system/map_status", 1)
 
         self.get_logger().info("---Boundary planner node initalised---")
 
@@ -273,6 +275,7 @@ class OrderedMapSpline(Node):
         map = self.get_occupancy_grid(bx, by, yx, yy)
         self.current_map = map
         self.map_pub.publish(self.current_map)
+        self.map_created_pub.publish(Bool(data=True))
         # self.final_path_published = True
 
 def main(args=None):
