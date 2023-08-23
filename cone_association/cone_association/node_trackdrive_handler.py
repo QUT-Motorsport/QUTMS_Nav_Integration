@@ -6,10 +6,12 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
 import rclpy
+from rclpy.action import ActionClient
 
 from driverless_msgs.msg import Shutdown, State
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import UInt8, Bool
+from nav2_msgs.action import NavigateThroughPoses
 
 from driverless_common.shutdown_node import ShutdownNode
 
@@ -23,6 +25,7 @@ class TrackdriveHandler(ShutdownNode):
     last_x = 0.0
     goal_offet = 5.0
     received_map = False
+    goal_handle = None
 
     def __init__(self):
         super().__init__("trackdrive_logic_node")
@@ -38,6 +41,10 @@ class TrackdriveHandler(ShutdownNode):
         self.lap_trig_pub = self.create_publisher(UInt8, "/system/laps_completed", 1)
         self.init_pose_pub = self.create_publisher(PoseWithCovarianceStamped, "/initialpose", 1)
         self.goal_pose_pub = self.create_publisher(PoseStamped, "/goal_pose", 1)
+
+        self.nav_through_poses_client = ActionClient(self,
+                                                     NavigateThroughPoses,
+                                                     'navigate_through_poses')
 
         if DEBUG:
             # start at lap 1
@@ -114,11 +121,15 @@ class TrackdriveHandler(ShutdownNode):
                 init_pose_msg.pose.covariance = diag.flatten().tolist()
                 self.init_pose_pub.publish(init_pose_msg)
 
-            goal_pose_msg = PoseStamped()
-            goal_pose_msg.header.stamp = track_to_base.header.stamp
-            goal_pose_msg.header.frame_id = "track"
-            goal_pose_msg.pose.position.x = self.goal_offet - (self.laps * 0.1)
-            self.goal_pose_pub.publish(goal_pose_msg)
+                goal_poses = []
+                for i in range(1, 11):
+                    goal_pose_msg = PoseStamped()
+                    goal_pose_msg.header.stamp = track_to_base.header.stamp
+                    goal_pose_msg.header.frame_id = "track"
+                    goal_pose_msg.pose.position.x = self.goal_offet - (i * 0.1)
+                    goal_poses.append(goal_pose_msg)
+                
+                self.goal_pose_pub.publish(goal_poses)
             
             self.last_x = track_to_base.transform.translation.x
             self.last_lap_time = time.time()
@@ -129,6 +140,28 @@ class TrackdriveHandler(ShutdownNode):
             # TODO: sort out vehicle states for eventual environment agnostic operation
             shutdown_msg = Shutdown(finished_engage_ebs=True)
             self.shutdown_pub.publish(shutdown_msg)
+
+    def go_through_poses(self, poses):
+        # Sends a `NavThroughPoses` action request
+        self.debug("Waiting for 'NavigateThroughPoses' action server")
+        while not self.nav_through_poses_client.wait_for_server(timeout_sec=1.0):
+            self.info("'NavigateThroughPoses' action server not available, waiting...")
+
+        goal_msg = NavigateThroughPoses.Goal()
+        goal_msg.poses = poses
+
+        self.info('Navigating with ' + str(len(goal_msg.poses)) + ' goals.' + '...')
+        send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg,
+                                                                         self._feedbackCallback)
+        rclpy.spin_until_future_complete(self, send_goal_future)
+        self.goal_handle = send_goal_future.result()
+
+        if not self.goal_handle.accepted:
+            self.error('Goal with ' + str(len(poses)) + ' poses was rejected!')
+            return False
+
+        self.result_future = self.goal_handle.get_result_async()
+        return True
 
 
 def main(args=None):
