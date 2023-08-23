@@ -27,6 +27,7 @@ setup(
             "map_interpolation = cone_association.node_map_interpolation:main",
             "nav_commands = cone_association.node_nav_commands:main",
             "trackdrive_handler = cone_association.node_trackdrive_handler:main",
+            "trackdrive_handler_debug = cone_association.node_trackdrive_handler_debug:main",
         ],
     },
 )
