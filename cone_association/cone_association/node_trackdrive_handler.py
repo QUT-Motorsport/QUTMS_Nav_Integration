@@ -32,7 +32,7 @@ class TrackdriveHandler(ShutdownNode):
         self.create_subscription(State, "system/as_status", self.state_callback, 10)
         self.create_subscription(Bool, "system/map_status", self.map_callback, 1)
 
-        self.create_timer((1 / 10), self.timer_callback)  # 50hz state 'prediction'
+        self.create_timer((1 / 10), self.timer_callback)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
@@ -121,15 +121,11 @@ class TrackdriveHandler(ShutdownNode):
                 init_pose_msg.pose.covariance = diag.flatten().tolist()
                 self.init_pose_pub.publish(init_pose_msg)
 
-                goal_poses = []
-                for i in range(1, 11):
-                    goal_pose_msg = PoseStamped()
-                    goal_pose_msg.header.stamp = track_to_base.header.stamp
-                    goal_pose_msg.header.frame_id = "track"
-                    goal_pose_msg.pose.position.x = self.goal_offet - (i * 0.1)
-                    goal_poses.append(goal_pose_msg)
-                
-                self.goal_pose_pub.publish(goal_poses)
+            goal_pose_msg = PoseStamped()
+            goal_pose_msg.header.stamp = track_to_base.header.stamp
+            goal_pose_msg.header.frame_id = "track"
+            goal_pose_msg.pose.position.x = self.goal_offet - (self.laps * 0.1)
+            self.goal_pose_pub.publish(goal_pose_msg)               
             
             self.last_x = track_to_base.transform.translation.x
             self.last_lap_time = time.time()
@@ -141,27 +137,29 @@ class TrackdriveHandler(ShutdownNode):
             shutdown_msg = Shutdown(finished_engage_ebs=True)
             self.shutdown_pub.publish(shutdown_msg)
 
-    def go_through_poses(self, poses):
+    def go_through_poses(self, poses: PoseStamped):
         # Sends a `NavThroughPoses` action request
-        self.debug("Waiting for 'NavigateThroughPoses' action server")
+        self.get_logger().info("Waiting for 'NavigateThroughPoses' action server")
         while not self.nav_through_poses_client.wait_for_server(timeout_sec=1.0):
-            self.info("'NavigateThroughPoses' action server not available, waiting...")
+            self.get_logger().info("'NavigateThroughPoses' action server not available, waiting...")
 
         goal_msg = NavigateThroughPoses.Goal()
         goal_msg.poses = poses
 
-        self.info('Navigating with ' + str(len(goal_msg.poses)) + ' goals.' + '...')
-        send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg,
-                                                                         self._feedbackCallback)
-        rclpy.spin_until_future_complete(self, send_goal_future)
-        self.goal_handle = send_goal_future.result()
+        self.get_logger().info('Navigating with ' + str(len(goal_msg.poses)) + ' goals.' + '...')
+        send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg)
+        # rclpy.spin_until_future_complete(self, send_goal_future)
+        # while not send_goal_future.done():
+        #     self.get_logger().info('Waiting for NavigateThroughPoses action to complete...')
+        #     time.sleep(1)
+        # self.goal_handle = send_goal_future.result()
 
-        if not self.goal_handle.accepted:
-            self.error('Goal with ' + str(len(poses)) + ' poses was rejected!')
-            return False
+        # if not self.goal_handle.accepted:
+        #     self.error('Goal with ' + str(len(poses)) + ' poses was rejected!')
+        #     return False
 
-        self.result_future = self.goal_handle.get_result_async()
-        return True
+        # self.result_future = self.goal_handle.get_result_async()
+        # return True
 
 
 def main(args=None):
