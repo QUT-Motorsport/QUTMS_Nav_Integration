@@ -54,15 +54,21 @@ def generate_launch_description():
                   ('plan', '/planning/global_path')]
 
     # behaviour tree xml file location
-    bt_xml_file = os.path.join(
+    to_pose_bt_xml = os.path.join(
         get_package_share_directory('qutms_nav2'),
         'behaviour_trees',
-        'simple_global_plan_follow.xml')
+        'plan_to_pose_and_follow.xml')
+
+    through_poses_bt_xml = os.path.join(
+        get_package_share_directory('qutms_nav2'),
+        'behaviour_trees',
+        'plan_through_poses_and_follow.xml')
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
         'autostart': autostart,
-        'default_nav_to_pose_bt_xml': bt_xml_file,
+        'default_nav_to_pose_bt_xml': to_pose_bt_xml,
+        'default_nav_through_poses_bt_xml' : through_poses_bt_xml,
     }
 
     configured_params = RewrittenYaml(
