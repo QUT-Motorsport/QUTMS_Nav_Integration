@@ -1,9 +1,9 @@
 /**: # stack-wide parameters
   ros__parameters:
     use_sim_time: True
-    global_frame: track
+    global_frame: map
     local_frame: odom
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     # robot_radius: 1.0
     footprint: "[ [1.7, 0.9], [1.7, -0.9], [-1.2, -0.9], [-1.2, 0.9] ]"
 
