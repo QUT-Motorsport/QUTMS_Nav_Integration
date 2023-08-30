@@ -45,7 +45,7 @@ def generate_launch_description():
         [
             launch.actions.DeclareLaunchArgument(
                 name="use_sim_time",
-                default_value="True",
+                default_value="False",
                 description="Flag to enable use_sim_time",
             ),
             localisation_node,
