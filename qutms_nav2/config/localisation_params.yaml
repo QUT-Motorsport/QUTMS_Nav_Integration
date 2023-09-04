@@ -16,7 +16,7 @@ odom_filter_node:
     world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
     odom0: zed2i/zed_node/odom
-    odom0_config: [true, true, false,  # x, y, z
+    odom0_config: [false, false, false,  # x, y, z
                    false, false, true,  # roll, pitch, yaw
                    false, false, false,  # x_dot, y_dot, z_dot
                    false, false, false,  # roll_dot, pitch_dot, yaw_dot
