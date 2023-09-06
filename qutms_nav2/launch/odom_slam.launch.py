@@ -1,55 +1,45 @@
 import os
+from ament_index_python.packages import get_package_share_path
 
 import launch
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import Command, LaunchConfiguration
-
+from launch.substitutions import LaunchConfiguration
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import IncludeLaunchDescription
 
 def generate_launch_description():
-    pkg_share = FindPackageShare(package="qutms_nav2").find(
-        "qutms_nav2"
-    )
+    pkg_share = get_package_share_path("qutms_nav2")
 
     # Community ROS 2 packages
-    localisation_node = Node(
-        package="robot_localization",
-        executable="ekf_node",
-        name="odom_filter_node",
-        output="screen",
-        parameters=[
-            os.path.join(pkg_share, "config/dual_localisation_params.yaml"),
-            {"use_sim_time": LaunchConfiguration("use_sim_time")},
-        ],
-    )
-    navsat_transform_node = Node(
-        package="robot_localization",
-        executable="navsat_transform_node",
-        name="navsat_transform_node",
-        output="screen",
-        parameters=[
-            os.path.join(pkg_share, "config/dual_localisation_params.yaml"),
-            {"use_sim_time": LaunchConfiguration("use_sim_time")},
-        ],
-        remappings=[('gps/fix', 'imu/nav_sat_fix'), ('imu', 'imu/data')]
+    robot_localization_launch = IncludeLaunchDescription(
+        launch_description_source=PythonLaunchDescriptionSource(
+            launch_file_path=str(pkg_share / "launch" / "navsat_localization.launch.py")
+        ),
+        launch_arguments={
+            "use_sim_time": LaunchConfiguration("use_sim_time"),
+        }.items(),
     )
 
+    # Custom packages
     slam_node = Node(
         package="py_slam",
         executable="odom_slam",
         name="odom_slam_node",
         output="screen",
     )
-
+    pose_history_node = Node(
+        package="evaluation",
+        executable="pose_history",
+        output="screen",
+    )
     return launch.LaunchDescription(
         [
             launch.actions.DeclareLaunchArgument(
                 name="use_sim_time",
-                default_value="True",
+                default_value="False",
                 description="Flag to enable use_sim_time",
             ),
-            localisation_node,
-            navsat_transform_node,
+            robot_localization_launch,
             slam_node,
         ]
     )
