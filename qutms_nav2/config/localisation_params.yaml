@@ -16,7 +16,7 @@ odom_filter_node:
     world_frame: odom           # Defaults to the value ofodom_frame if unspecified
 
     odom0: zed2i/zed_node/odom
-    odom0_config: [false, false, false,  # x, y, z
+    odom0_config: [true, true, false,  # x, y, z
                    false, false, true,  # roll, pitch, yaw
                    false, false, false,  # x_dot, y_dot, z_dot
                    false, false, false,  # roll_dot, pitch_dot, yaw_dot
@@ -29,13 +29,20 @@ odom_filter_node:
                     false, false, true,  # roll_dot, pitch_dot, yaw_dot
                     false, false, false]  # x_ddot, y_ddot, z_ddot
 
-    imu0: imu/data
-    imu0_config: [false, false, false,  # x, y, z
+    # imu0: imu/data
+    # imu0_config: [false, false, false,  # x, y, z
+    #               false, false, true,  # roll, pitch, yaw
+    #               false, false, false,  # x_dot, y_dot, z_dot
+    #               false, false, true,  # roll_dot, pitch_dot, yaw_dot
+    #               false, false, false]  # x_ddot, y_ddot, z_ddot
+    # imu0_remove_gravitational_acceleration: true
+
+    odom2: odometry/sbg_ekf
+    odom2_config: [false, false, false,  # x, y, z
                   false, false, true,  # roll, pitch, yaw
                   false, false, false,  # x_dot, y_dot, z_dot
                   false, false, true,  # roll_dot, pitch_dot, yaw_dot
                   false, false, false]  # x_ddot, y_ddot, z_ddot
-    imu0_remove_gravitational_acceleration: true
 
     odom1: odometry/gps
     odom1_config: [true,  true,  false,
@@ -48,7 +55,7 @@ odom_filter_node:
     two_d_mode: true
     publish_acceleration: false
     publish_tf: true
-    sensor_timeout: 0.1
+    sensor_timeout: 0.05
 
 navsat_transform_node:
   ros__parameters:
