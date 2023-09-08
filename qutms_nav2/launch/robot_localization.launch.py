@@ -24,7 +24,7 @@ def generate_launch_description():
         parameters=[
             os.path.join(pkg_share, "config/localisation_params.yaml"),
         ],
-        remappings=[('gps/fix', 'imu/nav_sat_fix'), ('imu', 'imu/data')]
+        remappings=[('gps/fix', 'imu/nav_sat_fix'), ('imu', 'imu/sbg_ekf_heading')]
     )
 
     return launch.LaunchDescription(
