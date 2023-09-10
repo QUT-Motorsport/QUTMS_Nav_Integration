@@ -4,8 +4,6 @@ from typing import Optional, Tuple
 
 import numpy as np
 import rclpy
-from rclpy.time import Time
-from rclpy.duration import Duration
 from driverless_msgs.msg import (Cone, ConeDetectionStamped,
                                  ConeWithCovariance, State)
 from geometry_msgs.msg import Point
@@ -77,10 +75,10 @@ class ConeAssociation(Node):
         # skip if no transform received
         try:
             map_to_base = self.tf_buffer.lookup_transform(
-                "track", "base_footprint", Time(), Duration(seconds=10)
+                "track", "base_footprint", rclpy.time.Time()
             )
         except TransformException as e:
-            self.get_logger().warn("Transform exception: " + str(e))
+            self.get_logger().info("Transform exception: " + str(e))
             return
 
         # get the delta from the previous state
