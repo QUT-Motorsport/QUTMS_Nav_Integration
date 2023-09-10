@@ -3,7 +3,6 @@ from ament_index_python.packages import get_package_share_path
 
 import launch
 from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import IncludeLaunchDescription
 
@@ -13,19 +12,18 @@ def generate_launch_description():
     # Community ROS 2 packages
     robot_localization_launch = IncludeLaunchDescription(
         launch_description_source=PythonLaunchDescriptionSource(
-            launch_file_path=str(pkg_share / "launch" / "navsat_localization.launch.py")
+            launch_file_path=str(pkg_share / "launch" / "robot_localization.launch.py")
         ),
-        launch_arguments={
-            "use_sim_time": LaunchConfiguration("use_sim_time"),
-        }.items(),
     )
 
     # Custom packages
     slam_node = Node(
         package="py_slam",
         executable="odom_slam",
-        name="odom_slam_node",
         output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/custom_params.yaml"),
+        ],
     )
     pose_history_node = Node(
         package="evaluation",
@@ -34,11 +32,6 @@ def generate_launch_description():
     )
     return launch.LaunchDescription(
         [
-            launch.actions.DeclareLaunchArgument(
-                name="use_sim_time",
-                default_value="False",
-                description="Flag to enable use_sim_time",
-            ),
             robot_localization_launch,
             slam_node,
         ]

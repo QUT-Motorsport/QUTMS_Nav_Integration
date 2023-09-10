@@ -52,7 +52,7 @@ odom_filter_node:
 
 navsat_transform_node:
   ros__parameters:
-    use_sim_time: true
+    use_sim_time: false
 
     frequency: 20.0
     delay: 0.0

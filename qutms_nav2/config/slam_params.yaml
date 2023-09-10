@@ -23,7 +23,7 @@ slam_toolbox_node:
     debug_logging: false  # Change logger to debug
     throttle_scans: 1  # Number of scans to throttle in synchronous mode
     transform_publish_period: 0.02  # The map to odom transform publish period. 0 will not publish transforms
-    map_update_interval: 5.0  # Interval to update the 2D occupancy map for other applications / visualization
+    map_update_interval: 2.0  # Interval to update the 2D occupancy map for other applications / visualization
     enable_interactive_mode: false  # Interactive mode will retain a cache of laser scans mapped to their ID for visualization in interactive mode
     position_covariance_scale: 1.0  # This can be used to tune the influence of the pose position in a downstream localization filter
     yaw_covariance_scale: 1.0  # Pose yaw
