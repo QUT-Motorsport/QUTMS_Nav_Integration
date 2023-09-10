@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import rclpy
+from rclpy.time import Duration
 from driverless_msgs.msg import (Cone, ConeDetectionStamped,
                                  ConeWithCovariance, State)
 from geometry_msgs.msg import Point
@@ -43,9 +44,6 @@ class ConeAssociation(Node):
         )
         self.create_subscription(State, "/system/as_status", self.state_callback, 1)
 
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-
         # slam publisher
         self.slam_publisher: Publisher = self.create_publisher(
             ConeDetectionStamped, "/slam/global_map", 1
@@ -53,6 +51,11 @@ class ConeAssociation(Node):
         self.local_publisher: Publisher = self.create_publisher(
             ConeDetectionStamped, "/slam/local_map", 1
         )
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
+        self.clock = self.get_clock()
 
         self.get_logger().info("---SLAM node initialised---")
 
@@ -75,7 +78,7 @@ class ConeAssociation(Node):
         # skip if no transform received
         try:
             map_to_base = self.tf_buffer.lookup_transform(
-                "track", "base_footprint", rclpy.time.Time()
+                "track", "base_footprint", rclpy.time.Time(seconds=0)
             )
         except TransformException as e:
             self.get_logger().info("Transform exception: " + str(e))
