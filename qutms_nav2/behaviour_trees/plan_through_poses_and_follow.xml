@@ -9,9 +9,9 @@
         <RemovePassedGoals input_goals="{goals}" output_goals="{goals}" radius="0.7"/>
       </ReactiveSequence> -->
       <GoalUpdatedController>
-        <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+        <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="SmacPlannerHybrid"/>
       </GoalUpdatedController>
-      <FollowPath path="{path}" controller_id="FollowPath"/>
+      <FollowPath path="{path}" controller_id="RegulatedPurePursuit"/>
     </PipelineSequence>
   </BehaviorTree>
 </root>

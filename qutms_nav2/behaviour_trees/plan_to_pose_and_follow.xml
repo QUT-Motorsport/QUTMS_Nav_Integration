@@ -6,9 +6,9 @@
   <BehaviorTree ID="MainTree">
     <PipelineSequence>
       <GoalUpdatedController>
-        <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+        <ComputePathToPose goal="{goal}" path="{path}" planner_id="SmacPlannerHybrid"/>
       </GoalUpdatedController>
-      <FollowPath path="{path}" controller_id="FollowPath"/>
+      <FollowPath path="{path}" controller_id="RegulatedPurePursuit"/>
     </PipelineSequence>
   </BehaviorTree>
 </root>
