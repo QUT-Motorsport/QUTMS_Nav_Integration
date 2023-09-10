@@ -50,7 +50,11 @@ def generate_launch_description():
         package="cone_association",
         executable="map_interpolation",
         output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/custom_params.yaml"),
+        ],
     )
+    
     return launch.LaunchDescription(
         [
             robot_localization_launch,
