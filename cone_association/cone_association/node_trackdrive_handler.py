@@ -15,8 +15,6 @@ from nav2_msgs.action import NavigateThroughPoses
 
 from driverless_common.shutdown_node import ShutdownNode
 
-DEBUG = True
-
 class TrackdriveHandler(ShutdownNode):
     mission_started = False
     crossed_start = False
@@ -29,16 +27,19 @@ class TrackdriveHandler(ShutdownNode):
 
     def __init__(self):
         super().__init__("trackdrive_logic_node")
-        self.create_subscription(State, "system/as_status", self.state_callback, 10)
+
+        self.declare_parameter("start_following", False)
+
+        self.create_subscription(State, "system/as_status", self.state_callback, 1)
         self.create_subscription(Bool, "system/map_status", self.map_callback, 1)
 
-        self.create_timer((1 / 10), self.timer_callback)
+        self.create_timer((1 / 20), self.timer_callback)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # publishers
-        self.shutdown_pub = self.create_publisher(Shutdown, "/system/shutdown", 1)
-        self.lap_trig_pub = self.create_publisher(UInt8, "/system/laps_completed", 1)
+        self.shutdown_pub = self.create_publisher(Shutdown, "system/shutdown", 1)
+        self.lap_trig_pub = self.create_publisher(UInt8, "system/laps_completed", 1)
         self.init_pose_pub = self.create_publisher(PoseWithCovarianceStamped, "/initialpose", 1)
         self.goal_pose_pub = self.create_publisher(PoseStamped, "/goal_pose", 1)
 
@@ -46,7 +47,7 @@ class TrackdriveHandler(ShutdownNode):
                                                      NavigateThroughPoses,
                                                      'navigate_through_poses')
 
-        if DEBUG:
+        if self.get_parameter("start_following").value:
             # start at lap 1
             self.get_logger().warn("---DEBUG MODE ENABLED---")
             self.crossed_start = True
@@ -71,9 +72,11 @@ class TrackdriveHandler(ShutdownNode):
         # get distance from 0,0 and increment laps when within a certain threshold
         # and distance is increasing away from 0,0
         try:
-            track_to_base = self.tf_buffer.lookup_transform("track", "base_footprint", rclpy.time.Time())
+            track_to_base = self.tf_buffer.lookup_transform(
+                "track", "base_footprint", rclpy.time.Time(seconds=0)
+            )
         except TransformException as e:
-            self.get_logger().warn("Transform exception: " + str(e))
+            self.get_logger().debug("Transform exception: " + str(e))
             return
         
         if not self.mission_started:
