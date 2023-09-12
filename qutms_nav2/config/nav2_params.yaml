@@ -11,8 +11,7 @@ bt_navigator:
   ros__parameters:
     bt_loop_duration: 10
     default_server_timeout: 20
-    # navigators: ["navigate_to_pose"]
-    navigators: ["navigate_through_poses"]
+    navigators: ["navigate_to_pose", "navigate_through_poses"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
     navigate_through_poses:
