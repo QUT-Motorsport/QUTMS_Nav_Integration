@@ -79,10 +79,10 @@ class ConeAssociation(Node):
             return
         
         # mapping has stopped, but continue publishing last map
-        if self.active and not self.mapping:
-            self.slam_publisher.publish(self.current_track)
-            self.local_publisher.publish(self.current_local_track)
-            return
+        # if self.active and not self.mapping:
+        #     self.slam_publisher.publish(self.current_track)
+        #     self.local_publisher.publish(self.current_local_track)
+        #     return
 
         start: float = time.perf_counter()
 

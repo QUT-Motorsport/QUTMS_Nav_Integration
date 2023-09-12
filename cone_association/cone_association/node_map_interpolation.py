@@ -17,7 +17,7 @@ from typing import List, Tuple
 MAX_ANGLE = 0.15
 
 
-def approximate_b_spline_path(x: list, y: list, n_path_points: int, degree=3, s=0) -> Tuple[list, list]:
+def approximate_b_spline_path(x: list, y: list, n_path_points: int, degree=3, s=0.1) -> Tuple[list, list]:
     """
     ADAPTED FROM: https://github.com/AtsushiSakai/PythonRobotics/blob/master/PathPlanning/BSplinePath/bspline_path.py \n
     Approximate points with a B-Spline path
