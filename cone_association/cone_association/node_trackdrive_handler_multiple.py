@@ -29,7 +29,7 @@ class TrackdriveHandler(ShutdownNode):
     def __init__(self):
         super().__init__("trackdrive_logic_node")
 
-        self.declare_parameter("start_following", True)
+        self.declare_parameter("start_following", False)
 
         self.create_subscription(State, "system/as_status", self.state_callback, 1)
         self.create_subscription(Bool, "system/map_status", self.map_callback, 1)

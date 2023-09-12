@@ -28,7 +28,7 @@ setup(
             "nav_commands = cone_association.node_nav_commands:main",
             "trackdrive_handler = cone_association.node_trackdrive_handler:main",
             "trackdrive_handler_multiple = cone_association.node_trackdrive_handler_multiple:main",
-            "trackdrive_handler_single = cone_association.node_trackdrive_single:main",
+            "trackdrive_handler_single = cone_association.node_trackdrive_handler_single:main",
         ],
     },
 )
