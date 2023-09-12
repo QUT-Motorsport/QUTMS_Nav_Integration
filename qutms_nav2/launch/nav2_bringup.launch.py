@@ -31,10 +31,8 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory('qutms_nav2')
 
     namespace = LaunchConfiguration('namespace')
-    use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
     params_file = LaunchConfiguration('params_file')
-    use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
 
     lifecycle_nodes = ['controller_server',
@@ -54,11 +52,14 @@ def generate_launch_description():
                   ('plan', '/planning/global_path')]
 
     # behaviour tree xml file location
+    # uncomment the XML you want to test
     to_pose_bt_xml = os.path.join(
         get_package_share_directory('qutms_nav2'),
         'behaviour_trees',
-        'replan_to_pose_and_follow.xml')
+        # 'plan_to_pose.xml')
+        'replan_to_pose.xml')
         # 'plan_to_pose_and_follow.xml')
+        # 'replan_to_pose_and_follow.xml')
 
     through_poses_bt_xml = os.path.join(
         get_package_share_directory('qutms_nav2'),
@@ -101,12 +102,10 @@ def generate_launch_description():
 
     load_nodes = GroupAction(
         actions=[
-            SetParameter('use_sim_time', use_sim_time),
             Node(
                 package='nav2_controller',
                 executable='controller_server',
                 output='screen',
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
@@ -115,7 +114,6 @@ def generate_launch_description():
                 executable='planner_server',
                 name='planner_server',
                 output='screen',
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
@@ -124,7 +122,6 @@ def generate_launch_description():
                 executable='behavior_server',
                 name='behavior_server',
                 output='screen',
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
@@ -133,7 +130,6 @@ def generate_launch_description():
                 executable='bt_navigator',
                 name='bt_navigator',
                 output='screen',
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
