@@ -20,7 +20,6 @@ from cone_association.cone_props import ConeProps
 
 VIEW_X = 20
 VIEW_Y = 10
-RADIUS = 1
 LEAF_SIZE = 10
 MIN_DETECTIONS = 20
 
@@ -36,6 +35,7 @@ class ConeAssociation(Node):
     counter = 0
     current_track = None
     current_local_track = None
+    radius = 1.0
 
     def __init__(self):
         super().__init__("cone_association_node")
@@ -73,6 +73,7 @@ class ConeAssociation(Node):
         if msg.lap_count > 0 and self.mapping:
             self.get_logger().info("Lap completed, mapping completed")
             self.mapping = False
+            self.radius = 1.8
 
     def callback(self, msg: ConeDetectionStamped):
         if not self.active:
@@ -148,7 +149,7 @@ class ConeAssociation(Node):
             # search a KD tree for the closest cone, if it is within 1m, update the location
             # otherwise, add it to the array
             tree = KDTree(self.track[:, :2], leaf_size=LEAF_SIZE)
-            ind = tree.query_radius([[detection.map_x, detection.map_y]], r=RADIUS)
+            ind = tree.query_radius([[detection.map_x, detection.map_y]], r=self.radius)
             if ind[0].size != 0:
                 idx = ind[0][0]
                 current_cone = self.track[idx]
