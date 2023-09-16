@@ -90,7 +90,7 @@ def make_path_msg(points, spline_len):
     return path_msg
 
 
-def get_closest_cone(cones: list, dir: int=1, start_dist: int=3) -> List[float]:
+def get_closest_cone(cones: list, dir: int=1, start_dist: int=3, pos: float=1.5) -> List[float]:
     """
     Gets the position of the nearest cone to the car.
     * param cones: [x,y] coords of all current cones
@@ -98,10 +98,10 @@ def get_closest_cone(cones: list, dir: int=1, start_dist: int=3) -> List[float]:
     * return: [x,y] of nearest cone to the car
     """
     # iterate through all cones and find the closest one
-    nearest_cone = cones[0]
+    nearest_cone = None
     last_dist = float("inf")
     for cone in cones:
-        current_dist = fast_dist([start_dist, dir*1.5], cone)
+        current_dist = fast_dist([start_dist, dir*pos], cone)
         if current_dist < last_dist:
             nearest_cone = cone
             last_dist = current_dist
@@ -228,7 +228,7 @@ class OrderedMapSpline(Node):
         # publishers
         self.blue_bound_pub = self.create_publisher(Path, "/planning/blue_bounds", 1)
         self.yellow_bound_pub = self.create_publisher(Path, "/planning/yellow_bounds", 1)
-        self.planned_path_pub = self.create_publisher(Path, "/planning/global_path", 1)
+        self.planned_path_pub = self.create_publisher(Path, "/planning/midline_path", 1)
 
         map_qos = QoSProfile(
             reliability=QoSReliabilityPolicy.RELIABLE,
@@ -236,8 +236,8 @@ class OrderedMapSpline(Node):
             depth=1,
             durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
         )
-        self.map_pub = self.create_publisher(OccupancyGrid, "/planning/boundary_grid", map_qos)
-        self.map_meta_pub = self.create_publisher(MapMetaData, "/planning/boundary_grid_metadata", map_qos)
+        self.map_pub = self.create_publisher(OccupancyGrid, "/map", map_qos)
+        self.map_meta_pub = self.create_publisher(MapMetaData, "/map_metadata", map_qos)
 
         self.get_logger().info("---Ordered path planner node initalised---")
 
@@ -266,11 +266,17 @@ class OrderedMapSpline(Node):
             unsearched_cones = mapped_cones(self.current_track.cones)
 
         # find closest left and right cones to car
-        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=5)
-        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=5)
-
+        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=1)
         # remove closest cones from list
+        if closest_blue is None:
+            self.get_logger().warn("No blue cones found")
+            return
         unsearched_cones.remove(closest_blue)
+
+        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=1)
+        if closest_yellow is None:
+            self.get_logger().warn("No yellow cones found")
+            return
         unsearched_cones.remove(closest_yellow)
 
         # sort cones into order by finding the next cone in the direction of travel
@@ -309,7 +315,7 @@ class OrderedMapSpline(Node):
         # specify degree of spline if less than 3 cones        
         blue_degree = len(ordered_blues) - 1 if len(ordered_blues) <= 3 else 3
         yellow_degree = len(ordered_yellows) - 1 if len(ordered_yellows) <= 3 else 3
-        if blue_degree == 0 or yellow_degree == 0:
+        if blue_degree <= 1 or yellow_degree <= 1:
             self.get_logger().warn("Not enough cones to spline")
             return
 
