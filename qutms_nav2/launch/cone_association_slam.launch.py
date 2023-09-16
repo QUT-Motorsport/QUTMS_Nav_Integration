@@ -48,7 +48,7 @@ def generate_launch_description():
     )
     boundary_map_node = Node(
         package="cone_association",
-        executable="map_interpolation",
+        executable="boundary_interpolation",
         output="screen",
         parameters=[
             os.path.join(pkg_share, "config/custom_params.yaml"),

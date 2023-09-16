@@ -24,7 +24,7 @@ setup(
     entry_points={
         "console_scripts": [
             "cone_placement = cone_association.node_cone_placement:main",
-            "map_interpolation = cone_association.node_map_interpolation:main",
+            "boundary_interpolation = cone_association.node_boundary_interpolation:main",
             "nav_commands = cone_association.node_nav_commands:main",
             "trackdrive_handler = cone_association.node_trackdrive_handler:main",
             "trackdrive_handler_multiple = cone_association.node_trackdrive_handler_multiple:main",
