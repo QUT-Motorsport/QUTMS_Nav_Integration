@@ -25,6 +25,7 @@ setup(
         "console_scripts": [
             "map_comparison = evaluation.node_map_comparison:main",
             "pose_history = evaluation.node_pose_history:main",
+            "pose_to_tf = evaluation.node_pose_to_tf:main",
         ],
     },
 )
