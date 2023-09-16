@@ -50,14 +50,15 @@ def generate_launch_description():
                   ('/tf_static', 'tf_static'),
                   ('cmd_vel', 'control/nav_cmd_vel'),
                   ('plan', '/planning/global_path')]
+                #   ('map', 'planning/boundary_grid')]
 
     # behaviour tree xml file location
     # uncomment the XML you want to test
     to_pose_bt_xml = os.path.join(
         get_package_share_directory('qutms_nav2'),
         'behaviour_trees',
-        # 'plan_to_pose.xml')
-        'replan_to_pose.xml')
+        'plan_to_pose.xml')
+        # 'replan_to_pose.xml')
         # 'plan_to_pose_and_follow.xml')
         # 'replan_to_pose_and_follow.xml')
 
