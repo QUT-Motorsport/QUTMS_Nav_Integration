@@ -26,6 +26,7 @@ setup(
             "map_comparison = evaluation.node_map_comparison:main",
             "pose_history = evaluation.node_pose_history:main",
             "pose_to_tf = evaluation.node_pose_to_tf:main",
+            "race_line_recording = evaluation.node_race_line_recording:main",
         ],
     },
 )

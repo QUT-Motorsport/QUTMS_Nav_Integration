@@ -9,19 +9,23 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 
-USE_ODOM = False
-
 
 class RacingLineComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
+    midline = True
 
     def __init__(self) -> None:
         super().__init__("racing_line_comparison_node")
 
         # subscribe to topic
-        self.create_subscription(
-            Path, "/planning/global_path", self.path_callback, 10
-        )
+        if self.midline:
+            self.create_subscription(
+                Path, "/planning/midline_path", self.path_callback, 10
+            )
+        else:
+            self.create_subscription(
+                Path, "/planning/global_path", self.path_callback, 10
+            )
 
         self.get_logger().info("---Path evaluation initialised---")
 
@@ -77,8 +81,13 @@ class RacingLineComparison(Node):
         else:
             df = pd.DataFrame(columns=["id", "sum_dist", "sum_angle"])
 
-        # get the id of the current run - whether it uses odom or not and number of runs with that config
-        id = f"path_{len(df[df['id'] == id])}"
+        # get the id of the current run - whether it uses midline or not and number of runs with that config
+        id = "midline" if self.midline else "optimal"
+        id += f"_{len(df[df['id'] == id])}"
+
+        df = df._append(
+            {"id": id, "sum_dist": total_distance, "sum_angle": total_curvature}, ignore_index=True
+        )
 
         df.to_csv(csv_file, index=False)
 
