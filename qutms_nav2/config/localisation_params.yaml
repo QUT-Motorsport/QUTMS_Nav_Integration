@@ -29,13 +29,13 @@ odom_filter_node:
                     false, false, true,  # roll_dot, pitch_dot, yaw_dot
                     false, false, false]  # x_ddot, y_ddot, z_ddot
 
-    # imu0: imu/data
-    # imu0_config: [false, false, false,  # x, y, z
-    #               false, false, true,  # roll, pitch, yaw
-    #               false, false, false,  # x_dot, y_dot, z_dot
-    #               false, false, true,  # roll_dot, pitch_dot, yaw_dot
-    #               false, false, false]  # x_ddot, y_ddot, z_ddot
-    # imu0_remove_gravitational_acceleration: true
+    imu0: imu/data
+    imu0_config: [false, false, false,  # x, y, z
+                  false, false, true,  # roll, pitch, yaw
+                  false, false, false,  # x_dot, y_dot, z_dot
+                  false, false, true,  # roll_dot, pitch_dot, yaw_dot
+                  false, false, false]  # x_ddot, y_ddot, z_ddot
+    imu0_remove_gravitational_acceleration: true
 
     odom2: odometry/sbg_ekf
     odom2_config: [false, false, false,  # x, y, z
