@@ -31,17 +31,14 @@ def generate_launch_description():
     bringup_dir = get_package_share_directory('qutms_nav2')
 
     namespace = LaunchConfiguration('namespace')
-    use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
     params_file = LaunchConfiguration('params_file')
-    use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
 
     lifecycle_nodes = ['controller_server',
                        'planner_server',
                        'behavior_server',
-                       'bt_navigator',
-                       'waypoint_follower']
+                       'bt_navigator']
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
     # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
@@ -50,11 +47,32 @@ def generate_launch_description():
     # TODO(orduno) Substitute with `PushNodeRemapping`
     #              https://github.com/ros2/launch_ros/issues/56
     remappings = [('/tf', 'tf'),
-                  ('/tf_static', 'tf_static')]
+                  ('/tf_static', 'tf_static'),
+                  ('cmd_vel', 'control/nav_cmd_vel'),
+                  ('plan', '/planning/global_path')]
+                #   ('map', 'planning/boundary_grid')]
+
+    # behaviour tree xml file location
+    # uncomment the XML you want to test
+    to_pose_bt_xml = os.path.join(
+        get_package_share_directory('qutms_nav2'),
+        'behaviour_trees',
+        'plan_to_pose.xml')
+        # 'replan_to_pose.xml')
+        # 'plan_to_pose_and_follow.xml')
+        # 'replan_to_pose_and_follow.xml')
+
+    through_poses_bt_xml = os.path.join(
+        get_package_share_directory('qutms_nav2'),
+        'behaviour_trees',
+        'plan_through_poses_and_follow.xml')
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
-        'autostart': autostart}
+        'autostart': autostart,
+        'default_nav_to_pose_bt_xml': to_pose_bt_xml,
+        'default_nav_through_poses_bt_xml' : through_poses_bt_xml,
+    }
 
     configured_params = RewrittenYaml(
         source_file=params_file,
@@ -70,11 +88,6 @@ def generate_launch_description():
         default_value='',
         description='Top-level namespace')
 
-    declare_use_sim_time_cmd = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='true',
-        description='Use simulation (Gazebo) clock if true')
-
     declare_params_file_cmd = DeclareLaunchArgument(
         'params_file',
         default_value=os.path.join(bringup_dir, 'config', 'nav2_params.yaml'),
@@ -84,33 +97,24 @@ def generate_launch_description():
         'autostart', default_value='true',
         description='Automatically startup the nav2 stack')
 
-    declare_use_respawn_cmd = DeclareLaunchArgument(
-        'use_respawn', default_value='False',
-        description='Whether to respawn if a node crashes. Applied when composition is disabled.')
-
     declare_log_level_cmd = DeclareLaunchArgument(
         'log_level', default_value='info',
         description='log level')
 
     load_nodes = GroupAction(
         actions=[
-            SetParameter('use_sim_time', use_sim_time),
             Node(
                 package='nav2_controller',
                 executable='controller_server',
                 output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings + [('cmd_vel', 'cmd_vel_nav')]),
+                remappings=remappings),
             Node(
                 package='nav2_planner',
                 executable='planner_server',
                 name='planner_server',
                 output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
@@ -119,8 +123,6 @@ def generate_launch_description():
                 executable='behavior_server',
                 name='behavior_server',
                 output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
@@ -129,18 +131,6 @@ def generate_launch_description():
                 executable='bt_navigator',
                 name='bt_navigator',
                 output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
-                parameters=[configured_params],
-                arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings),
-            Node(
-                package='nav2_waypoint_follower',
-                executable='waypoint_follower',
-                name='waypoint_follower',
-                output='screen',
-                respawn=use_respawn,
-                respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings),
@@ -163,10 +153,8 @@ def generate_launch_description():
 
     # Declare the launch options
     ld.add_action(declare_namespace_cmd)
-    ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
-    ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     # Add the actions to launch all of the navigation nodes
     ld.add_action(load_nodes)

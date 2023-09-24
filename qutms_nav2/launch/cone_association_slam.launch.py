@@ -46,11 +46,20 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/custom_params.yaml"),
         ],
     )
+    boundary_map_node = Node(
+        package="cone_association",
+        executable="boundary_interpolation",
+        output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/custom_params.yaml"),
+        ],
+    )
+    
     return launch.LaunchDescription(
         [
             robot_localization_launch,
             async_slam_toolbox_node,
             assocation_node,
-            # pose_history_node,
+            boundary_map_node,
         ]
     )

@@ -20,7 +20,6 @@ from cone_association.cone_props import ConeProps
 
 VIEW_X = 20
 VIEW_Y = 10
-RADIUS = 1
 LEAF_SIZE = 10
 MIN_DETECTIONS = 20
 
@@ -32,6 +31,11 @@ class ConeAssociation(Node):
 
     detection_count = 0
     mapping = False
+    active = False
+    counter = 0
+    current_track = None
+    current_local_track = None
+    radius = 1.0
 
     def __init__(self):
         super().__init__("cone_association_node")
@@ -63,15 +67,23 @@ class ConeAssociation(Node):
         # we haven't started driving yet
         if msg.state == State.DRIVING and msg.lap_count == 0:
             self.mapping = True
+            self.active = True
 
         # we have finished mapping
         if msg.lap_count > 0 and self.mapping:
             self.get_logger().info("Lap completed, mapping completed")
             self.mapping = False
+            self.radius = 1.8
 
     def callback(self, msg: ConeDetectionStamped):
-        if not self.mapping:
+        if not self.active:
             return
+        
+        # mapping has stopped, but continue publishing last map
+        # if self.active and not self.mapping:
+        #     self.slam_publisher.publish(self.current_track)
+        #     self.local_publisher.publish(self.current_local_track)
+        #     return
 
         start: float = time.perf_counter()
 
@@ -137,7 +149,7 @@ class ConeAssociation(Node):
             # search a KD tree for the closest cone, if it is within 1m, update the location
             # otherwise, add it to the array
             tree = KDTree(self.track[:, :2], leaf_size=LEAF_SIZE)
-            ind = tree.query_radius([[detection.map_x, detection.map_y]], r=RADIUS)
+            ind = tree.query_radius([[detection.map_x, detection.map_y]], r=self.radius)
             if ind[0].size != 0:
                 idx = ind[0][0]
                 current_cone = self.track[idx]
@@ -228,14 +240,18 @@ class ConeAssociation(Node):
         self.slam_publisher.publish(track_msg)
 
         # publish local map msg
-        local_map_msg = self.get_local_map(msg)
-        self.local_publisher.publish(local_map_msg)
+        local_track_msg = self.get_local_map(msg)
+        self.local_publisher.publish(local_track_msg)
 
-        if time.time() - self.last_time > 1:
-            self.get_logger().debug(
-                f"Wait time: {str(time.perf_counter()-start)}"
+        self.current_track = track_msg
+        self.current_local_track = local_track_msg
+
+        if self.counter == 20:
+            self.get_logger().info(
+                f"Wait time: {(time.perf_counter()-start) * 1000}"
             )  # log time
             self.last_time = time.time()
+            self.counter = 0
 
     def get_local_map(self, msg: ConeDetectionStamped) -> np.ndarray:
         """
