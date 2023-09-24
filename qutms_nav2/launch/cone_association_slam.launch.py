@@ -31,7 +31,7 @@ def generate_launch_description():
 
     # Custom packages
     assocation_node = Node(
-        package="cone_association",
+        package="nav_interfaces",
         executable="cone_placement",
         output="screen",
         parameters=[
@@ -47,7 +47,7 @@ def generate_launch_description():
         ],
     )
     boundary_map_node = Node(
-        package="cone_association",
+        package="nav_interfaces",
         executable="boundary_interpolation",
         output="screen",
         parameters=[

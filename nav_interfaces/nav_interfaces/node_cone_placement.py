@@ -16,7 +16,7 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from transforms3d.euler import euler2quat, quat2euler
 
-from cone_association.cone_props import ConeProps
+from nav_interfaces.cone_props import ConeProps
 
 VIEW_X = 20
 VIEW_Y = 10

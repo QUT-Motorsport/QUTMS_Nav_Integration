@@ -3,7 +3,7 @@ from glob import glob
 
 from setuptools import setup
 
-package_name = "cone_association"
+package_name = "nav_interfaces"
 
 setup(
     name=package_name,
@@ -18,17 +18,17 @@ setup(
     zip_safe=True,
     maintainer="Alastair Bradford",
     maintainer_email="team@qutmotorsport.com",
-    description="Python approach to SLAM with known car position",
+    description="Mapping, Planning, Control helper interfaces with Nav2",
     license="MIT",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "cone_placement = cone_association.node_cone_placement:main",
-            "boundary_interpolation = cone_association.node_boundary_interpolation:main",
-            "nav_commands = cone_association.node_nav_commands:main",
-            "trackdrive_handler = cone_association.node_trackdrive_handler:main",
-            "trackdrive_handler_multiple = cone_association.node_trackdrive_handler_multiple:main",
-            "trackdrive_handler_single = cone_association.node_trackdrive_handler_single:main",
+            "cone_placement = nav_interfaces.node_cone_placement:main",
+            "boundary_interpolation = nav_interfaces.node_boundary_interpolation:main",
+            "nav_commands = nav_interfaces.node_nav_commands:main",
+            "trackdrive_handler = nav_interfaces.node_trackdrive_handler:main",
+            "trackdrive_handler_multiple = nav_interfaces.node_trackdrive_handler_multiple:main",
+            "trackdrive_handler_single = nav_interfaces.node_trackdrive_handler_single:main",
         ],
     },
 )
