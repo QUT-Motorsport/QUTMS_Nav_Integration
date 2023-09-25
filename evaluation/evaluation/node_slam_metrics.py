@@ -7,8 +7,6 @@ from driverless_msgs.msg import ConeDetectionStamped
 from nav_msgs.msg import Path
 from rclpy.node import Node
 
-USE_ODOM = False
-
 
 class MapComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
@@ -16,12 +14,13 @@ class MapComparison(Node):
     slam_path = None
     gt_map = None
     gt_path = None
+    use_odom = False
 
     def __init__(self) -> None:
         super().__init__("track_to_csv_node")
 
         # subscribe to topic
-        if USE_ODOM:
+        if self.use_odom:
             self.create_subscription(
                 ConeDetectionStamped,
                 "/odom_slam/global_map",
@@ -133,8 +132,14 @@ class MapComparison(Node):
             df = pd.DataFrame(columns=["id", "map_rmse", "path_rmse"])
 
         # get the id of the current run - whether it uses odom or not and number of runs with that config
-        id = "odom" if USE_ODOM else "no_odom"
-        id += f"_{len(df[df['id'] == id])}"
+        id = "odom" if self.use_odom else "no_odom"
+        if any(id in s for s in df["id"].values):
+            # get the last number
+            last_num = int(df["id"].values[-1].split("_")[-1])
+            # increment it
+            id = f"{id}_{last_num + 1}"
+        else:
+            id = f"{id}_0"                
 
         df = df.append(
             {"id": id, "map_rmse": map_rmse, "path_rmse": path_rmse}, ignore_index=True

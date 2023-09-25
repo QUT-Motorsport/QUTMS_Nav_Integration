@@ -83,7 +83,13 @@ class RacingLineComparison(Node):
 
         # get the id of the current run - whether it uses midline or not and number of runs with that config
         id = "midline" if self.midline else "optimal"
-        id += f"_{len(df[df['id'] == id])}"
+        if any(id in s for s in df["id"].values):
+            # get the last number
+            last_num = int(df["id"].values[-1].split("_")[-1])
+            # increment it
+            id = f"{id}_{last_num + 1}"
+        else:
+            id = f"{id}_0"                
 
         df = df._append(
             {"id": id, "sum_dist": total_distance, "sum_angle": total_curvature}, ignore_index=True

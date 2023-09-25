@@ -23,10 +23,11 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "map_comparison = evaluation.node_map_comparison:main",
+            "slam_metrics = evaluation.node_slam_metrics:main",
             "pose_history = evaluation.node_pose_history:main",
             "pose_to_tf = evaluation.node_pose_to_tf:main",
-            "race_line_recording = evaluation.node_race_line_recording:main",
+            "race_line_metrics = evaluation.node_race_line_metrics:main",
+            "control_metrics = evaluation.node_control_metrics:main",
         ],
     },
 )
