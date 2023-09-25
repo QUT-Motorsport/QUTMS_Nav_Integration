@@ -72,6 +72,7 @@ def make_path_msg(points, spline_len):
             th_change = th_change + 2 * pi
 
         pose = PoseStamped()
+        pose.header.frame_id = "track"
         pose.pose.position.x = points[i][0]
         pose.pose.position.y = points[i][1]
         pose.pose.position.z = 0.0
@@ -225,6 +226,8 @@ class OrderedMapSpline(Node):
         self.create_subscription(State, "/system/as_status", self.state_callback, QOS_LATEST)
         self.create_timer(1/10, self.planning_callback)
 
+        self.declare_parameter("start_following", False)
+
         # publishers
         self.blue_bound_pub = self.create_publisher(Path, "/planning/blue_bounds", 1)
         self.yellow_bound_pub = self.create_publisher(Path, "/planning/yellow_bounds", 1)
@@ -238,6 +241,10 @@ class OrderedMapSpline(Node):
         )
         self.map_pub = self.create_publisher(OccupancyGrid, "/map", map_qos)
         self.map_meta_pub = self.create_publisher(MapMetaData, "/map_metadata", map_qos)
+
+        if self.get_parameter("start_following").value:
+            self.following = True
+            self.get_logger().warn("---DEBUG MODE ENABLED---")
 
         self.get_logger().info("---Ordered path planner node initalised---")
 

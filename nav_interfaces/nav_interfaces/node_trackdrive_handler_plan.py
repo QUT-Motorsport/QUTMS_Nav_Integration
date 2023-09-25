@@ -11,17 +11,20 @@ from rclpy.action import ActionClient
 from driverless_msgs.msg import Shutdown, State
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import UInt8, Bool
-from nav2_msgs.action import NavigateThroughPoses
+from nav_msgs.msg import Path
+from nav2_msgs.action import FollowPath
 
 from driverless_common.shutdown_node import ShutdownNode
 
 class TrackdriveHandler(ShutdownNode):
     mission_started = False
     crossed_start = False
+    sent_goal = False
     laps = 0
     last_lap_time = 0.0
     last_x = 0.0
     goal_offet = 0.0
+    path = None
     goal_handle = None
 
     def __init__(self):
@@ -29,21 +32,22 @@ class TrackdriveHandler(ShutdownNode):
 
         self.declare_parameter("start_following", True)
 
-        self.create_subscription(State, "/system/as_status", self.state_callback, 1)
+        self.create_subscription(State, "system/as_status", self.state_callback, 1)
+        self.create_subscription(Path, "planning/midline_path", self.path_callback, 1)
 
         self.create_timer((1 / 20), self.timer_callback)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # publishers
-        self.shutdown_pub = self.create_publisher(Shutdown, "/system/shutdown", 1)
-        self.lap_trig_pub = self.create_publisher(UInt8, "/system/laps_completed", 1)
+        self.shutdown_pub = self.create_publisher(Shutdown, "system/shutdown", 1)
+        self.lap_trig_pub = self.create_publisher(UInt8, "system/laps_completed", 1)
         self.init_pose_pub = self.create_publisher(PoseWithCovarianceStamped, "/initialpose", 1)
-        self.goal_pose_pub = self.create_publisher(PoseStamped, "/goal_pose", 1)
 
+        # actions
         self.nav_through_poses_client = ActionClient(self,
-                                                     NavigateThroughPoses,
-                                                     'navigate_through_poses')
+                                                     FollowPath,
+                                                     'follow_path')
 
         if self.get_parameter("start_following").value:
             # start at lap 1
@@ -58,6 +62,13 @@ class TrackdriveHandler(ShutdownNode):
             self.last_lap_time = time.time()
             self.lap_trig_pub.publish(UInt8(data=0))
             self.get_logger().info("Trackdrive mission started")
+
+    def path_callback(self, msg: Path):
+        # receive path and convert to numpy array
+        if self.path is not None:
+            return
+        self.get_logger().info(f"Spline Path Recieved - length: {len(msg.poses)}", once=True)
+        self.path = msg
 
     def timer_callback(self):
         # check if car has crossed the finish line (0,0)
@@ -98,26 +109,20 @@ class TrackdriveHandler(ShutdownNode):
             self.get_logger().info(f"Lap {self.laps} completed")
 
             # publish initial pose on first lap
-            if self.laps == 1:
+            if self.laps == 1 and not self.sent_goal:
                 init_pose_msg = PoseWithCovarianceStamped()
                 init_pose_msg.header.stamp = track_to_base.header.stamp
                 init_pose_msg.header.frame_id = "track"
                 # convert translation to pose
                 init_pose_msg.pose.pose.position.x = track_to_base.transform.translation.x
                 init_pose_msg.pose.pose.position.y = track_to_base.transform.translation.y
-                init_pose_msg.pose.pose.position.z = track_to_base.transform.translation.z
                 init_pose_msg.pose.pose.orientation = track_to_base.transform.rotation
                 # cov diag to square
-                diag = np.diag([0.25, 0.25, 0.0, 0.0, 0.0, 0.06]).astype(np.float32)
-                init_pose_msg.pose.covariance = diag.flatten().tolist()
                 self.init_pose_pub.publish(init_pose_msg)
-
-                # send one goal - will be the same goal each round but the vehicle will never reach it
-                goal_pose_msg = PoseStamped()
-                goal_pose_msg.header.stamp = track_to_base.header.stamp
-                goal_pose_msg.header.frame_id = "track"
-                goal_pose_msg.pose.position.x = self.goal_offet - (self.laps * 0.1)
-                self.goal_pose_pub.publish(goal_pose_msg)               
+            
+                self.send_path(self.path)
+                self.sent_goal = True
+                self.get_logger().info("Trackdrive mission goal sent")
             
             self.last_x = track_to_base.transform.translation.x
             self.last_lap_time = time.time()
@@ -129,16 +134,16 @@ class TrackdriveHandler(ShutdownNode):
             shutdown_msg = Shutdown(finished_engage_ebs=True)
             self.shutdown_pub.publish(shutdown_msg)
 
-    def go_through_poses(self, poses: PoseStamped):
+    def send_path(self, path: Path):
         # Sends a `NavThroughPoses` action request
         self.get_logger().info("Waiting for 'NavigateThroughPoses' action server")
         while not self.nav_through_poses_client.wait_for_server(timeout_sec=1.0):
             self.get_logger().info("'NavigateThroughPoses' action server not available, waiting...")
 
-        goal_msg = NavigateThroughPoses.Goal()
-        goal_msg.poses = poses
+        goal_msg = FollowPath.Goal()
+        goal_msg.path = path
 
-        self.get_logger().info('Navigating with ' + str(len(goal_msg.poses)) + ' goals.' + '...')
+        self.get_logger().info('Navigating with ' + str(len(path.poses)) + ' goals.' + '...')
         send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg)
         # rclpy.spin_until_future_complete(self, send_goal_future)
         # while not send_goal_future.done():
@@ -152,7 +157,6 @@ class TrackdriveHandler(ShutdownNode):
 
         # self.result_future = self.goal_handle.get_result_async()
         # return True
-
 
 def main(args=None):
     rclpy.init(args=args)

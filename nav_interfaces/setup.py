@@ -29,6 +29,7 @@ setup(
             "trackdrive_handler = nav_interfaces.node_trackdrive_handler:main",
             "trackdrive_handler_multiple = nav_interfaces.node_trackdrive_handler_multiple:main",
             "trackdrive_handler_single = nav_interfaces.node_trackdrive_handler_single:main",
+            "trackdrive_handler_plan = nav_interfaces.node_trackdrive_handler_plan:main",
         ],
     },
 )

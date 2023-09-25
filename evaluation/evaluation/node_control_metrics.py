@@ -6,15 +6,15 @@ from sklearn.neighbors import KDTree
 import pandas as pd
 
 import rclpy
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from nav_msgs.msg import Path
 from rclpy.node import Node
 from driverless_common.common import QOS_LATEST, angle, dist, fast_dist, wrap_to_pi
 
 class PoseHistory(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
-    midline = False
-    nav2 = True
+    midline = True
+    nav2 = False
     path = None
     start_time = 0.0
     last_pos = [0.0, 0.0]
@@ -130,7 +130,7 @@ class PoseHistory(Node):
         tangent = angle(closest_point, second_point)
         # get the perpendicular distance from the car to the path
         distance = dist(car_pos, closest_point) * np.sin(wrap_to_pi(tangent - angle(car_pos, closest_point)))
-        return distance
+        return abs(distance)
 
 def main():
     # begin ros node
