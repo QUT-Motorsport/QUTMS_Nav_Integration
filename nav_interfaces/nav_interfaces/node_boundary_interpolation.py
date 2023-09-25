@@ -226,7 +226,7 @@ class OrderedMapSpline(Node):
         self.create_subscription(State, "/system/as_status", self.state_callback, QOS_LATEST)
         self.create_timer(1/10, self.planning_callback)
 
-        self.declare_parameter("start_following", False)
+        self.declare_parameter("start_following", True)
 
         # publishers
         self.blue_bound_pub = self.create_publisher(Path, "/planning/blue_bounds", 1)

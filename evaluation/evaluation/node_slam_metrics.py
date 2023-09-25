@@ -1,97 +1,100 @@
 from math import sqrt
+import time
 from pathlib import Path as OSPath
+from sklearn.neighbors import KDTree
 
 import pandas as pd
 import rclpy
 from driverless_msgs.msg import ConeDetectionStamped
-from nav_msgs.msg import Path
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
+from driverless_common.common import QOS_LATEST, angle, dist, fast_dist, wrap_to_pi
 
 
 class MapComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
     slam_map = None
-    slam_path = None
+    slam_path = []
     gt_map = None
-    gt_path = None
-    use_odom = False
+    gt_path = []
+    localisation_type = "ekf_slam"
+    last_pos = [0.0, 0.0]
+    started = False
 
     def __init__(self) -> None:
         super().__init__("track_to_csv_node")
 
         # subscribe to topic
-        if self.use_odom:
-            self.create_subscription(
-                ConeDetectionStamped,
-                "/odom_slam/global_map",
-                self.slam_map_callback,
-                10,
-            )
-            self.create_subscription(
-                Path, "/odom_slam/car_pose_history", self.slam_path_callback, 10
-            )
-        else:
-            self.create_subscription(
-                ConeDetectionStamped, "/slam/global_map", self.slam_map_callback, 10
-            )
-            self.create_subscription(
-                Path, "/slam/car_pose_history", self.slam_path_callback, 10
-            )
+        self.create_subscription(
+            ConeDetectionStamped, "/slam/global_map", self.slam_map_callback, 10
+        )
+        self.create_subscription(
+            PoseWithCovarianceStamped, "/slam/car_pose", self.slam_pose_callback, 10
+        )
         self.create_subscription(
             ConeDetectionStamped, "/ground_truth/global_map", self.gt_map_callback, 10
         )
         self.create_subscription(
-            Path, "/ground_truth/car_pose_history", self.gt_path_callback, 10
+            Odometry, "/ground_truth/odom", self.gt_odom_callback, 10
         )
 
-        # make a timer that periodically checks if we have received a map and path
-        self.create_timer(1.0, self.check_received)
-
-        self.get_logger().info("---Track Writer Initalised---")
+        self.get_logger().info("---SLAM accuracy node Initalised---")
 
     def slam_map_callback(self, msg: ConeDetectionStamped):
-        if self.slam_path is None:
-            self.slam_map = msg
-            self.get_logger().info(f"Received slam map: {len(msg.cones)} cones")
-
-    def slam_path_callback(self, msg: Path):
-        if self.slam_path is None:
-            self.slam_path = msg
-            self.get_logger().info(f"Received slam path: {len(msg.poses)} poses")
+        self.slam_map = msg
+        self.get_logger().info(f"Received slam map: {len(msg.cones)} cones", once=True)
 
     def gt_map_callback(self, msg: ConeDetectionStamped):
-        if self.gt_map is None:
-            self.gt_map = msg
-            self.get_logger().info(f"Received gt map {len(msg.cones_with_cov)} cones")
-
-    def gt_path_callback(self, msg: Path):
-        if self.gt_path is None:
-            self.gt_path = msg
-            self.get_logger().info(f"Received gt path: {len(msg.poses)} poses")
-
-    def check_received(self):
-        if (
-            self.slam_map is None
-            or self.slam_path is None
-            or self.gt_map is None
-            or self.gt_path is None
-        ):
+        if self.gt_map is not None:
             return
+        self.gt_map = msg
+        self.get_logger().info(f"Received gt map {len(msg.cones_with_cov)} cones", once=True)
 
+    def slam_pose_callback(self, msg: PoseWithCovarianceStamped):
+        # convert to [x,y]
+        pos = [msg.pose.pose.position.x, msg.pose.pose.position.y]
+        self.slam_path.append(pos)
+
+        current_time = time.time()
+        # only start calculating once we have moved forward a bit
+        # check if we have moved forward a bit
+        if fast_dist(pos, self.last_pos) < 0.1 and not self.started:
+            self.get_logger().info(f"Not started - {pos}", throttle_duration_sec=1)
+            return
+        elif fast_dist(pos, self.last_pos) >= 0.1 and not self.started:
+            # only is entered once
+            self.started = True
+            self.start_time = current_time
+            self.get_logger().info(f"Car Pose Recieved - {pos}", once=True)
+
+        # check if we have returned to the start line (some time after starting)
+        if self.last_pos[0] <= 0 and pos[0] > 0 and current_time - self.start_time > 10:
+            # crossed the start line
+            self.get_logger().info(f"Crossed start line - {pos}", once=True)
+            self.calculate_err()
+        
+        self.last_pos = pos
+
+    def gt_odom_callback(self, msg: Odometry):
+        # convert to [x,y]
+        pos = [msg.pose.pose.position.x, msg.pose.pose.position.y]
+        self.gt_path.append(pos)
+
+    def calculate_err(self):
         self.get_logger().info("Comparing maps")
         # compare the two maps
         # iterate through each slam detection and find the closest gt detection to accumulate error
         map_error = 0
         for slam_cone in self.slam_map.cones:
             # find the closest gt cone
-            closest_gt_cone = None
             closest_gt_cone_distance = 1000000
             for gt_cone in self.gt_map.cones_with_cov:
-                distance = (slam_cone.location.x - gt_cone.cone.location.x) ** 2 + (
-                    slam_cone.location.y - gt_cone.cone.location.y
-                ) ** 2
+                distance = fast_dist(
+                    [slam_cone.location.x, slam_cone.location.y],
+                    [gt_cone.cone.location.x, gt_cone.cone.location.y],
+                )
                 if distance < closest_gt_cone_distance:
-                    closest_gt_cone = gt_cone
                     closest_gt_cone_distance = distance
 
             # add the error to the total error
@@ -103,23 +106,20 @@ class MapComparison(Node):
         # compare the two paths
         # iterate through each slam pose and find the closest gt pose to accumulate error
         path_error = 0
-        for slam_pose in self.slam_path.poses:
+        for slam_pos in self.slam_path:
             # find the closest gt pose
-            closest_gt_pose = None
-            closest_gt_pose_distance = 1000000
-            for gt_pose in self.gt_path.poses:
-                distance = (
-                    slam_pose.pose.position.x - gt_pose.pose.position.x
-                ) ** 2 + (slam_pose.pose.position.y - gt_pose.pose.position.y) ** 2
-                if distance < closest_gt_pose_distance:
-                    closest_gt_pose = gt_pose
-                    closest_gt_pose_distance = distance
+            closest_gt_pos_distance = 1000000
+            for gt_pos in self.gt_path:
+                distance = fast_dist(slam_pos, gt_pos)
+                if distance < closest_gt_pos_distance:
+                    closest_gt_pos_distance = distance
 
             # add the error to the total error
-            path_error += closest_gt_pose_distance
+            path_error += closest_gt_pos_distance
 
+        self.get_logger().info(f"Path error: {path_error}, {len(self.slam_path)}, {len(self.gt_path)}")
         # rmse
-        path_rmse = sqrt(path_error / len(self.slam_path.poses))
+        path_rmse = sqrt(path_error / len(self.slam_path))
 
         self.get_logger().info(f"Map error: {map_rmse}")
         self.get_logger().info(f"Path error: {path_rmse}")
@@ -132,7 +132,7 @@ class MapComparison(Node):
             df = pd.DataFrame(columns=["id", "map_rmse", "path_rmse"])
 
         # get the id of the current run - whether it uses odom or not and number of runs with that config
-        id = "odom" if self.use_odom else "no_odom"
+        id = self.localisation_type
         if any(id in s for s in df["id"].values):
             # get the last number
             last_num = int(df["id"].values[-1].split("_")[-1])
@@ -141,7 +141,7 @@ class MapComparison(Node):
         else:
             id = f"{id}_0"                
 
-        df = df.append(
+        df = df._append(
             {"id": id, "map_rmse": map_rmse, "path_rmse": path_rmse}, ignore_index=True
         )
 

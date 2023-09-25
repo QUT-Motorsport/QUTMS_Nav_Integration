@@ -44,14 +44,6 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/custom_params.yaml"),
         ],
     )
-    pose_history_node = Node(
-        package="evaluation",
-        executable="pose_history",
-        output="screen",
-        parameters=[
-            os.path.join(pkg_share, "config/custom_params.yaml"),
-        ],
-    )
     boundary_map_node = Node(
         package="nav_interfaces",
         executable="boundary_interpolation",
@@ -75,7 +67,7 @@ def generate_launch_description():
             async_slam_toolbox_node,
             assocation_node,
             boundary_map_node,
-            nav2_bringup_launch,
+            # nav2_bringup_launch,
             nav_commands_node,
         ]
     )
