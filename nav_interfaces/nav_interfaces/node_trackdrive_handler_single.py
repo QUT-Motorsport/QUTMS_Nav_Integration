@@ -21,14 +21,14 @@ class TrackdriveHandler(ShutdownNode):
     laps = 0
     last_lap_time = 0.0
     last_x = 0.0
-    goal_offet = 5.0
-    received_map = False
+    goal_offet = 0.0
+    received_map = True
     goal_handle = None
 
     def __init__(self):
         super().__init__("trackdrive_logic_node")
 
-        self.declare_parameter("start_following", False)
+        self.declare_parameter("start_following", True)
 
         self.create_subscription(State, "/system/as_status", self.state_callback, 1)
         self.create_subscription(Bool, "/system/map_status", self.map_callback, 1)
