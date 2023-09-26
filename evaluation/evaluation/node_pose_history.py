@@ -2,7 +2,7 @@ import time
 
 import rclpy
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, Odometry
 from rclpy.node import Node
 from rclpy.publisher import Publisher
 
@@ -21,13 +21,13 @@ class PoseHistory(Node):
             PoseWithCovarianceStamped, "/slam/car_pose", self.slam_callback, 10
         )
         self.create_subscription(
-            PoseWithCovarianceStamped, "/ground_truth/car_pose", self.gt_callback, 10
+            PoseWithCovarianceStamped, "/ground_truth/odom", self.gt_callback, 10
         )
         self.slam_history_pub: Publisher = self.create_publisher(
             Path, "/slam/car_pose_history", 10
         )
         self.gt_history_pub: Publisher = self.create_publisher(
-            Path, "/ground_truth/car_pose_history", 10
+            Path, "/ground_truth/odom_history", 10
         )
 
         self.get_logger().info("---Track Writer Initalised---")
@@ -42,7 +42,7 @@ class PoseHistory(Node):
             self.slam_history_pub.publish(self.slam_path_history)
             self.last_slam_path_time = time.time()
 
-    def gt_callback(self, msg: PoseWithCovarianceStamped):
+    def gt_callback(self, msg: Odometry):
         self.gt_path_history.header = msg.header
         pose = PoseStamped()
         pose.pose = msg.pose.pose
