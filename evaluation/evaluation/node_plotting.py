@@ -218,7 +218,7 @@ class MapComparison(Node):
 
         # plot the map, bounds, optimal line, and path on one plot
         # plot with matplotlib
-        plt.figure(figsize=(5, 5))
+        plt.figure(figsize=(7, 7))
         # make axis equal
         plt.axis("equal")
         # plt.plot(list(zip(*self.mid_path), c="k", label="Midline Path", linestyle="dashed")
