@@ -19,7 +19,7 @@ def generate_launch_description():
     # Custom packages
     slam_node = Node(
         package="py_slam",
-        executable="sbg_slam",
+        executable="odom_slam",
         output="screen",
         parameters=[
             os.path.join(pkg_share, "config/custom_params.yaml"),
@@ -35,7 +35,7 @@ def generate_launch_description():
     )
     return launch.LaunchDescription(
         [
-            # robot_localization_launch,
+            robot_localization_launch,
             slam_node,
             boundary_map_node,
         ]
