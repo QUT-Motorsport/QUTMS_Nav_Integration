@@ -2,6 +2,7 @@ from math import sqrt
 import time
 from pathlib import Path as OSPath
 from sklearn.neighbors import KDTree
+import matplotlib.pyplot as plt
 
 import pandas as pd
 import rclpy
@@ -14,9 +15,9 @@ from driverless_common.common import QOS_LATEST, angle, dist, fast_dist, wrap_to
 
 class MapComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
-    slam_map = None
+    slam_map = []
     slam_path = []
-    gt_map = None
+    gt_map = []
     gt_path = []
     localisation_type = "ekf_slam"
     last_pos = [0.0, 0.0]
@@ -42,14 +43,15 @@ class MapComparison(Node):
         self.get_logger().info("---SLAM accuracy node Initalised---")
 
     def slam_map_callback(self, msg: ConeDetectionStamped):
-        self.slam_map = msg
         self.get_logger().info(f"Received slam map: {len(msg.cones)} cones", once=True)
+        for cone in msg.cones:
+            self.slam_map.append([cone.position.x, cone.position.y])
 
     def gt_map_callback(self, msg: ConeDetectionStamped):
-        if self.gt_map is not None:
-            return
-        self.gt_map = msg
-        self.get_logger().info(f"Received gt map {len(msg.cones_with_cov)} cones", once=True)
+        if len(self.gt_map) == 0:
+            self.get_logger().info(f"Received gt map {len(msg.cones_with_cov)} cones", once=True)
+            for cone in msg.cones_with_cov:
+                self.gt_map.append([cone.position.x, cone.position.y])
 
     def slam_pose_callback(self, msg: PoseWithCovarianceStamped):
         # convert to [x,y]
@@ -86,14 +88,11 @@ class MapComparison(Node):
         # compare the two maps
         # iterate through each slam detection and find the closest gt detection to accumulate error
         map_error = 0
-        for slam_cone in self.slam_map.cones:
+        for slam_cone in self.slam_map:
             # find the closest gt cone
             closest_gt_cone_distance = 1000000
-            for gt_cone in self.gt_map.cones_with_cov:
-                distance = fast_dist(
-                    [slam_cone.location.x, slam_cone.location.y],
-                    [gt_cone.cone.location.x, gt_cone.cone.location.y],
-                )
+            for gt_cone in self.gt_map:
+                distance = fast_dist(slam_cone, gt_cone)
                 if distance < closest_gt_cone_distance:
                     closest_gt_cone_distance = distance
 
@@ -149,7 +148,17 @@ class MapComparison(Node):
 
         # exit the node
         self.get_logger().info("Finished writing to csv")
-        exit(0)
+
+        # plot with matplotlib
+        plt.figure(figsize=(10, 10))
+        plt.scatter(*zip(*self.slam_map), c="r", label="SLAM Map")
+        plt.scatter(*zip(*self.gt_map), c="b", label="Ground Truth Map")
+        plt.scatter(*zip(*self.slam_path), c="r", label="SLAM Pose Tracked")
+        plt.scatter(*zip(*self.gt_path), c="b", label="Ground Truth Pose Tracked")
+        plt.legend()
+        plt.show()
+
+        # exit(0)
 
 
 def main():

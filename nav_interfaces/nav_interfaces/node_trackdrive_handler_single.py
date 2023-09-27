@@ -21,7 +21,7 @@ class TrackdriveHandler(ShutdownNode):
     laps = 0
     last_lap_time = 0.0
     last_x = 0.0
-    goal_offet = 0.0
+    goal_offet = 0.1
     goal_handle = None
 
     def __init__(self):
@@ -128,30 +128,6 @@ class TrackdriveHandler(ShutdownNode):
             # TODO: sort out vehicle states for eventual environment agnostic operation
             shutdown_msg = Shutdown(finished_engage_ebs=True)
             self.shutdown_pub.publish(shutdown_msg)
-
-    def go_through_poses(self, poses: PoseStamped):
-        # Sends a `NavThroughPoses` action request
-        self.get_logger().info("Waiting for 'NavigateThroughPoses' action server")
-        while not self.nav_through_poses_client.wait_for_server(timeout_sec=1.0):
-            self.get_logger().info("'NavigateThroughPoses' action server not available, waiting...")
-
-        goal_msg = NavigateThroughPoses.Goal()
-        goal_msg.poses = poses
-
-        self.get_logger().info('Navigating with ' + str(len(goal_msg.poses)) + ' goals.' + '...')
-        send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg)
-        # rclpy.spin_until_future_complete(self, send_goal_future)
-        # while not send_goal_future.done():
-        #     self.get_logger().info('Waiting for NavigateThroughPoses action to complete...')
-        #     time.sleep(1)
-        # self.goal_handle = send_goal_future.result()
-
-        # if not self.goal_handle.accepted:
-        #     self.error('Goal with ' + str(len(poses)) + ' poses was rejected!')
-        #     return False
-
-        # self.result_future = self.goal_handle.get_result_async()
-        # return True
 
 
 def main(args=None):

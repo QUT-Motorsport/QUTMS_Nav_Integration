@@ -28,6 +28,7 @@ setup(
             "pose_to_tf = evaluation.node_pose_to_tf:main",
             "race_line_metrics = evaluation.node_race_line_metrics:main",
             "control_metrics = evaluation.node_control_metrics:main",
+            "plotting = evaluation.node_plotting:main",
         ],
     },
 )

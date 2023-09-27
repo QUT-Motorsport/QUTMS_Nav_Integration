@@ -57,9 +57,9 @@ def generate_launch_description():
     to_pose_bt_xml = os.path.join(
         get_package_share_directory('qutms_nav2'),
         'behaviour_trees',
-        'plan_to_pose.xml')
+        # 'plan_to_pose.xml')
         # 'replan_to_pose.xml')
-        # 'plan_to_pose_and_follow.xml')
+        'plan_to_pose_and_follow.xml')
         # 'replan_to_pose_and_follow.xml')
         # 'follow_path.xml')
 
