@@ -13,6 +13,9 @@ from driverless_msgs.msg import Cone
 from rclpy.node import Node
 from driverless_common.common import QOS_LATEST, angle, dist, fast_dist, wrap_to_pi
 
+
+NEW_STACK = True
+
 class MapComparison(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
     blue_cones = []
@@ -217,19 +220,32 @@ class MapComparison(Node):
             gt_cones_y = df["gt_cones_y"].values
 
         # plot the map, bounds, optimal line, and path on one plot
-        # plot with matplotlib
-        plt.figure(figsize=(7, 7))
+        # plot with matplotlib as figure
+        plt.figure(figsize=(10, 10))
         # make axis equal
         plt.axis("equal")
         # plt.plot(list(zip(*self.mid_path), c="k", label="Midline Path", linestyle="dashed")
         plt.scatter(gt_cones_x, gt_cones_y, c="k", label="Ground Truth Map")
-        plt.scatter(blue_cones_x, blue_cones_y, c="b", label="Blue Cone Locations")
-        plt.scatter(yellow_cones_x, yellow_cones_y, c="y", label="Yellow Cone Locations")
+        plt.scatter(blue_cones_x, blue_cones_y, c="b", label="Blue Cone Estimates")
+        plt.scatter(yellow_cones_x, yellow_cones_y, c="y", label="Yellow Cone Estimates")
         plt.plot(blue_bounds_x, blue_bounds_y, c="b", label="Blue Bounds")
         plt.plot(yellow_bounds_x, yellow_bounds_y, c="y", label="Yellow Bounds")
-        plt.plot(route_path_x, route_path_y, c="g", label="Optimal Path")
         plt.plot(slam_poses_x, slam_poses_y, c="r", label="Pose Tracked", linestyle="dotted")
-        plt.legend()
+        if NEW_STACK:
+            plt.plot(route_path_x, route_path_y, c="g", label="Optimal Path")
+        else:
+            plt.plot(route_path_x, route_path_y, c="g", label="Midline Path")
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.ylabel("Track Width [m]", fontsize=15)
+        plt.xlabel("Track Length [m]", fontsize=15)
+        plt.legend(loc="upper left", fontsize=18)
+        plt.tight_layout()
+        # save as pdf
+        if NEW_STACK:
+            plt.savefig(f"new_stack.pdf", bbox_inches="tight", format="pdf")
+        else:
+            plt.savefig(f"old_stack.pdf", bbox_inches="tight", format="pdf")
         plt.show()
 
         self.destroy_node()
@@ -245,7 +261,10 @@ def main():
     rclpy.shutdown()
 
 if __name__ == "__main__":
-    csv_file = OSPath("./QUTMS_Nav_Integration/csv_data/run_1695785482.csv")
+    if NEW_STACK:
+        csv_file = OSPath("./QUTMS_Nav_Integration/csv_data/run_1695785482.csv")
+    else:
+        csv_file = OSPath("./QUTMS_Nav_Integration/csv_data/run_1695803134.csv")
 
     # only need to create the node so we can use the plot
     rclpy.init()
