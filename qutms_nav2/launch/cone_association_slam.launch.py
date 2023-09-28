@@ -60,6 +60,22 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/custom_params.yaml"),
         ],
     )
+    pose_to_tf_node = Node(
+        package="evaluation",
+        executable="pose_to_tf",
+        output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/custom_params.yaml"),
+        ],
+    )
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/custom_params.yaml"),
+        ],
+    )
     
     return launch.LaunchDescription(
         [
@@ -69,5 +85,7 @@ def generate_launch_description():
             boundary_map_node,
             nav2_bringup_launch,
             nav_commands_node,
+            # pose_to_tf_node,
+            # rviz_node,
         ]
     )
