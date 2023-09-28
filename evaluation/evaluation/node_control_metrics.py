@@ -4,6 +4,9 @@ import time
 import numpy as np
 from sklearn.neighbors import KDTree
 import pandas as pd
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped
@@ -14,7 +17,7 @@ from driverless_common.common import QOS_LATEST, angle, dist, fast_dist, wrap_to
 class PoseHistory(Node):
     csv_folder = OSPath("./QUTMS_Nav_Integration/csv_data")
     midline = True
-    nav2 = False
+    nav2 = True
     path = None
     start_time = 0.0
     last_pos = [0.0, 0.0]
@@ -25,9 +28,9 @@ class PoseHistory(Node):
         super().__init__("pose_history_node")
 
         # subscribe to topic
-        self.create_subscription(
-            PoseWithCovarianceStamped, "/slam/car_pose", self.pose_callback, 10
-        )
+        self.create_timer((1 / 50), self.timer_callback)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         # subscribe to topic
         if self.midline:
             self.create_subscription(
@@ -48,14 +51,20 @@ class PoseHistory(Node):
         self.get_logger().info(f"Spline Path Recieved - length: {len(msg.poses)}", once=True)
         self.path = np.array([[p.pose.position.x, p.pose.position.y] for p in msg.poses])
 
-    def pose_callback(self, msg: PoseWithCovarianceStamped):
+    def timer_callback(self):
         # compare pose to closest point on path and add to cumulative error
         if self.path is None:
             return
+        try:
+            # TODO: parameterise these frames?
+            map_to_base = self.tf_buffer.lookup_transform("track", "base_footprint", rclpy.time.Time())
+        except TransformException as e:
+            self.get_logger().warn("Transform exception: " + str(e))
+            return
 
-        current_time = time.time()
+        current_time = time.perf_counter()
         # get car position
-        car_pos = [msg.pose.pose.position.x, msg.pose.pose.position.y]
+        car_pos = [map_to_base.transform.translation.x, map_to_base.transform.translation.y]
         # only start calculating once we have moved forward a bit
         # check if we have moved forward a bit
         if fast_dist(car_pos, self.last_pos) < 0.1 and not self.started:
@@ -76,9 +85,11 @@ class PoseHistory(Node):
         if self.last_pos[0] <= 0 and car_pos[0] > 0 and current_time - self.start_time > 5:
             # get lap time
             lap_time = current_time - self.start_time
+            self.start_time = current_time
             # get final RMSE
             cross_track_error = sqrt(self.square_error / len(self.path))
             self.get_logger().info(f"Lap Completed {lap_time} - CTE: {cross_track_error}")
+            self.square_error = 0.0
 
             # write the error to a csv file, append to the file if it already exists
             csv_file = self.csv_folder / "control_comparison.csv"
@@ -130,7 +141,7 @@ class PoseHistory(Node):
         tangent = angle(closest_point, second_point)
         # get the perpendicular distance from the car to the path
         distance = dist(car_pos, closest_point) * np.sin(wrap_to_pi(tangent - angle(car_pos, closest_point)))
-        return abs(distance)
+        return distance**2
 
 def main():
     # begin ros node

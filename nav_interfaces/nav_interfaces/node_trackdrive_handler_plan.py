@@ -23,7 +23,7 @@ class TrackdriveHandler(ShutdownNode):
     laps = 0
     last_lap_time = 0.0
     last_x = 0.0
-    goal_offet = 0.0
+    goal_offet = 0.1
     path = None
     goal_handle = None
 
@@ -65,7 +65,7 @@ class TrackdriveHandler(ShutdownNode):
 
     def path_callback(self, msg: Path):
         # receive path and convert to numpy array
-        if self.path is not None:
+        if self.path is not None and self.mission_started:
             return
         self.get_logger().info(f"Spline Path Recieved - length: {len(msg.poses)}", once=True)
         self.path = msg
@@ -145,18 +145,6 @@ class TrackdriveHandler(ShutdownNode):
 
         self.get_logger().info('Navigating with ' + str(len(path.poses)) + ' goals.' + '...')
         send_goal_future = self.nav_through_poses_client.send_goal_async(goal_msg)
-        # rclpy.spin_until_future_complete(self, send_goal_future)
-        # while not send_goal_future.done():
-        #     self.get_logger().info('Waiting for NavigateThroughPoses action to complete...')
-        #     time.sleep(1)
-        # self.goal_handle = send_goal_future.result()
-
-        # if not self.goal_handle.accepted:
-        #     self.error('Goal with ' + str(len(poses)) + ' poses was rejected!')
-        #     return False
-
-        # self.result_future = self.goal_handle.get_result_async()
-        # return True
 
 def main(args=None):
     rclpy.init(args=args)

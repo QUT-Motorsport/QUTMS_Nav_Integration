@@ -27,7 +27,7 @@ class TrackdriveHandler(ShutdownNode):
     def __init__(self):
         super().__init__("trackdrive_logic_node")
 
-        self.declare_parameter("start_following", False)
+        self.declare_parameter("start_following", True)
 
         self.create_subscription(State, "/system/as_status", self.state_callback, 1)
 
@@ -40,10 +40,6 @@ class TrackdriveHandler(ShutdownNode):
         self.lap_trig_pub = self.create_publisher(UInt8, "/system/laps_completed", 1)
         self.init_pose_pub = self.create_publisher(PoseWithCovarianceStamped, "/initialpose", 1)
         self.goal_pose_pub = self.create_publisher(PoseStamped, "/goal_pose", 1)
-
-        self.nav_through_poses_client = ActionClient(self,
-                                                     NavigateThroughPoses,
-                                                     'navigate_through_poses')
 
         if self.get_parameter("start_following").value:
             # start at lap 1
