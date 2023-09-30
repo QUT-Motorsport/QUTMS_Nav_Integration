@@ -25,14 +25,18 @@ def generate_launch_description():
             os.path.join(pkg_share, "config/custom_params.yaml"),
         ],
     )
-    pose_history_node = Node(
-        package="evaluation",
-        executable="pose_history",
+    boundary_map_node = Node(
+        package="nav_interfaces",
+        executable="boundary_interpolation",
         output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/custom_params.yaml"),
+        ],
     )
     return launch.LaunchDescription(
         [
             robot_localization_launch,
             slam_node,
+            boundary_map_node,
         ]
     )

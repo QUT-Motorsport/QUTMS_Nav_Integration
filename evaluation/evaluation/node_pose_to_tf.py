@@ -1,12 +1,8 @@
-import time
-
 import rclpy
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, TransformStamped
+from geometry_msgs.msg import TransformStamped
 from rclpy.node import Node
-from rclpy.publisher import Publisher
 from tf2_ros import TransformBroadcaster
 from nav_msgs.msg import Odometry
-from rosgraph_msgs.msg import Clock
 
 
 class PoseToTf(Node):
@@ -16,10 +12,6 @@ class PoseToTf(Node):
         # subscribe to topic
         self.create_subscription(
             Odometry, "/odometry/filtered", self.slam_callback, 10
-        )
-
-        self.sim_clock_pub = self.create_publisher(
-            Clock, "/clock", 10
         )
 
         # tf broadcaster
@@ -40,11 +32,6 @@ class PoseToTf(Node):
 
         # publish tf
         self.tf_broadcaster.sendTransform(t)
-
-        # publish sim clock
-        time_msg = Clock()
-        time_msg.clock = msg.header.stamp
-        self.sim_clock_pub.publish(time_msg)
 
 def main():
     # begin ros node
