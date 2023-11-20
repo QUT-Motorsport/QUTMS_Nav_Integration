@@ -30,6 +30,6 @@ def generate_launch_description():
     return launch.LaunchDescription(
         [
             localisation_node,
-            navsat_transform_node,
+            # navsat_transform_node,
         ]
     )
