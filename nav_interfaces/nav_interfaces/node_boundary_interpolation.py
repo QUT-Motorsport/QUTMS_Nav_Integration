@@ -293,14 +293,14 @@ class OrderedMapSpline(Node):
             unsearched_cones = mapped_cones(self.current_track.cones)
 
         # find closest left and right cones to car
-        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=3, pos=0)
+        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=3)
         # remove closest cones from list
         if closest_blue is None:
             self.get_logger().warn("No blue cones found")
             return
         unsearched_cones.remove(closest_blue)
 
-        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=3, pos=0)
+        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=3)
         if closest_yellow is None:
             self.get_logger().warn("No yellow cones found")
             return
@@ -329,7 +329,7 @@ class OrderedMapSpline(Node):
         while len(unsearched_cones) > 0:
             next_blue, last_blue_angle, last_blue_dist = get_next_cone(
                 unsearched_cones, last_blue, last_blue_angle,
-                search_range=7, search_angle=pi/4
+                search_range=4, search_angle=pi/5
             )
             if next_blue is None:
                 break
@@ -340,7 +340,7 @@ class OrderedMapSpline(Node):
         while len(unsearched_cones) > 0:
             next_yellow, last_yellow_angle, last_yellow_dist = get_next_cone(
                 unsearched_cones, last_yellow, last_yellow_angle,
-                search_range=7, search_angle=pi/4
+                search_range=4, search_angle=pi/5
             )
             if next_yellow is None:
                 break
