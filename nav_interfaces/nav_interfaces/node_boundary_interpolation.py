@@ -20,6 +20,10 @@ import time
 
 # for colour gradient based on intensity
 MAX_ANGLE = 0.15
+SEARCH_RANGE=7
+SEARCH_ANGLE=pi/2.5
+SEARCH_RANGE_LENIANCE=0.3
+SEARCH_ANGLE_MIN_LENIANCE=10 * pi/180 # 10 degrees
 
 
 def approximate_b_spline_path(x: list, y: list, n_path_points: int, degree=3, s=0) -> Tuple[list, list]:
@@ -110,7 +114,7 @@ def get_closest_cone(cones: list, dir: int=1, start_dist: int=3, pos: float=1.5)
     return nearest_cone
 
 
-def get_next_cone(cones: list, last_cone: list, heading_angle: float, search_range=5, search_angle=pi/2):
+def get_next_cone(cones: list, current_cone: list, last_angle: float, prefer_left_cone, search_range=5, search_angle=pi/2):
     """
     Gets the next cone in the direction of travel. searches within view cone of 90 degrees.
     * param cones: [x,y] coords of all current cones
@@ -121,8 +125,12 @@ def get_next_cone(cones: list, last_cone: list, heading_angle: float, search_ran
 
     # iterate through all cones and find the closest one
     nearest_cone = None
-    last_angle = search_angle
-    last_dist = search_range
+    nearest_angle = None
+    other_cone_options = []
+    last_dist = float("inf")
+    last_error = float("inf")
+    if prefer_left_cone == False:
+        last_error = -float("inf")
 
     # rotate search area by last angle
     for cone in cones:
@@ -132,13 +140,25 @@ def get_next_cone(cones: list, last_cone: list, heading_angle: float, search_ran
 
         distance = dist(last_cone, cone)
         # get angle between current point and next point
-        cone_angle = angle(last_cone, cone)
-        error = wrap_to_pi(heading_angle - cone_angle)
-        if last_angle > error > -last_angle and distance < last_dist:
-            nearest_cone = cone
-            last_angle = cone_angle
-            last_dist = distance
-    return nearest_cone, last_angle, last_dist
+        cone_angle = angle(current_cone, cone)
+        error = wrap_to_pi(last_angle - cone_angle)
+        if search_angle > error > -search_angle and dist < search_range ** 2:
+            other_cone_options.append(cone)
+            if dist < last_dist + SEARCH_RANGE_LENIANCE and ((prefer_left_cone and error < last_error + SEARCH_ANGLE_MIN_LENIANCE) or (not prefer_left_cone and error > last_error - SEARCH_ANGLE_MIN_LENIANCE)):
+                # if the difference in angle is bigger than the leniance, then just take it
+                if (prefer_left_cone and last_error - error > SEARCH_ANGLE_MIN_LENIANCE) or (not prefer_left_cone and error - last_error > SEARCH_ANGLE_MIN_LENIANCE):
+                    nearest_cone = cone
+                    nearest_angle = cone_angle
+                    last_dist = dist
+                    last_error = error
+                elif dist < last_dist:
+                    nearest_cone = cone
+                    nearest_angle = cone_angle
+                    last_dist = dist
+                    last_error = error
+    if nearest_cone is not None:
+        other_cone_options.remove(nearest_cone)
+    return nearest_cone, nearest_angle, other_cone_options
 
 def search_map(unsearched_cones, closest):
     last = closest
@@ -242,7 +262,7 @@ class OrderedMapSpline(Node):
         super().__init__("ordered_map_spline_node")
 
         # sub to track for all cone locations relative to car start point
-        self.create_subscription(ConeDetectionStamped, "/lidar/cone_detection", self.map_callback, QOS_LATEST)
+        self.create_subscription(ConeDetectionStamped, "/ground_truth/global_map", self.map_callback, QOS_LATEST)
         self.create_subscription(State, "/system/as_status", self.state_callback, QOS_LATEST)
         self.create_timer(1/10, self.planning_callback)
 
@@ -279,6 +299,143 @@ class OrderedMapSpline(Node):
 
         self.get_logger().debug("Received map")
         self.current_track = track_msg
+
+    def check_added_cone_cross(self, ordered_current, current_angle_options, ordered_other, other_angle_options, unsearched_cones, other_line_finished):
+        if len(ordered_current) <= 1 or len(ordered_other) <= 1:
+            return ordered_current, current_angle_options, ordered_other, other_angle_options, unsearched_cones, other_line_finished
+
+        # get the last added segment of the current line, then check if it crosses over the segments of the other line, but only for the neighbouring options of the previous cone
+        new_segment = [ordered_current[-2], ordered_current[-1]]
+        # potential_cones = current_angle_options[-2][1] # the potential options of the previous cone
+        # min_other_index = len(ordered_other) - 1
+        # max_other_index = 0
+        # for cone in potential_cones:
+        #     if cone in ordered_other:
+        #         cone_index = ordered_other.index(cone)
+        #         if cone_index < min_other_index:
+        #             min_other_index = cone_index
+        #         if cone_index > max_other_index:
+        #             max_other_index = cone_index
+
+        # if max_other_index == 0:
+        #     return ordered_current, current_angle_options, ordered_other, other_angle_options, unsearched_cones, other_line_finished
+        
+        # if min_other_index > 0:
+        #     min_other_index -= 1
+
+        # check if the new segment crosses over any of the segments of the other line
+        # for i in range(min_other_index, max_other_index):
+        for i in range(0, len(ordered_other)-1):
+            other_segment = [ordered_other[i], ordered_other[i+1]]
+            if self.check_lines_cross(new_segment, other_segment):
+
+                # if it does, then we need to switch the two cones, and put all the following cones back into the unsearched cones
+                ordered_current[-1] = ordered_other[i+1]
+                ordered_other[i+1] = new_segment[1]
+                temp_current_angle_dists = current_angle_options[-1]
+                current_angle_options[-1] = other_angle_options[i+1]
+                other_angle_options[i+1] = temp_current_angle_dists
+                unsearched_cones += ordered_other[i+2:]
+                ordered_other = ordered_other[:i+2]
+                other_angle_options = other_angle_options[:i+2]
+                other_line_finished = False
+                break
+        
+        return ordered_current, current_angle_options, ordered_other, other_angle_options, unsearched_cones, other_line_finished
+
+    def get_line_recursive(self, current_is_blue, unsearched_cones, ordered_current, ordered_other, current_angle_options, other_angle_options, other_line_finished, switch_line=False, check_other_line_cross=False):
+        # Do a check if the last added cone made the lines cross over
+        if len(ordered_current) > 1 and len(ordered_other) > 1:
+            ordered_current, current_angle_options, ordered_other, other_angle_options, unsearched_cones, other_line_finished = self.check_added_cone_cross(ordered_current, current_angle_options, ordered_other, other_angle_options, unsearched_cones, other_line_finished)
+            if check_other_line_cross:
+                ordered_other, other_angle_options, ordered_current, current_angle_options, unsearched_cones, other_line_finished = self.check_added_cone_cross(ordered_other, other_angle_options, ordered_current, current_angle_options, unsearched_cones, other_line_finished)
+
+        if switch_line:
+            temp_current = ordered_current
+            temp_current_angle_dists = current_angle_options
+            ordered_current = ordered_other
+            ordered_other = temp_current
+            current_angle_options = other_angle_options
+            other_angle_options = temp_current_angle_dists
+            current_is_blue = not current_is_blue            
+
+        last_cone = ordered_current[-1]
+        last_angle = current_angle_options[-1][0]
+
+        next_cone, next_angle, next_other_cone_options = get_next_cone(
+            unsearched_cones, last_cone, last_angle, current_is_blue,
+            search_range=SEARCH_RANGE, search_angle=SEARCH_ANGLE
+        )
+
+        # if there is a next cone, add it to the current line, remove it from the unsearched cones, and recurse
+        if next_cone is not None:
+            ordered_current.append(next_cone)
+            current_angle_options.append([next_angle, next_other_cone_options])
+            unsearched_cones.remove(next_cone)
+            return self.get_line_recursive(current_is_blue, unsearched_cones, ordered_current, ordered_other, current_angle_options, other_angle_options, other_line_finished)
+
+        # CONE NOT FOUND: check if there is a possible next cone on the other line
+        next_cone, next_angle, next_other_cone_options = get_next_cone(
+            ordered_other, last_cone, last_angle, current_is_blue,
+            search_range=SEARCH_RANGE, search_angle=SEARCH_ANGLE
+        )
+
+        # if it is not on the other line (or it's the first of the other line), and the other line is finished, then we are done
+        if (next_cone is None or next_cone == ordered_other[0]) and other_line_finished:
+            return ordered_current, ordered_other, current_is_blue
+        
+        # if it is not on the other line (or it's the first of the other line), and the other line is not finished, then we need to switch lines
+        elif (next_cone is None or next_cone == ordered_other[0]):
+            return self.get_line_recursive(current_is_blue, unsearched_cones, ordered_current, ordered_other, current_angle_options, other_angle_options, True, switch_line=True)
+
+        # if it is on the other line, check if there is an alternative cone for the other line to switch to
+        # if there is, then we need to remove it (and all cones after it) from the other line, and set the other_line_finished flag to False
+        elif next_cone is not None:
+            found_cone_index = ordered_other.index(next_cone)
+
+            # check if there is an alternative cone for the other line to switch to
+            cones_to_check = unsearched_cones + ordered_other[found_cone_index+1:] # all cones after the found cone
+            prev_other_cone = ordered_other[found_cone_index-1]
+            prev_other_angle = other_angle_options[found_cone_index-1][0]
+            alt_other_cone, alt_other_angle, alt_other_options = get_next_cone(
+                cones_to_check, prev_other_cone, prev_other_angle, not current_is_blue,
+                search_range=SEARCH_RANGE, search_angle=SEARCH_ANGLE
+            )
+
+            # if there is no alternative cone, then we are done
+            if alt_other_cone is None:
+                return ordered_current, ordered_other, current_is_blue
+
+            # if there is an alternative cone, then we need to remove it (and all cones after it) from the other line, 
+            # add them back to the unsearched_cones, and set the other_line_finished flag to False
+            unsearched_cones += ordered_other[found_cone_index+1:]
+            ordered_other = ordered_other[:found_cone_index]
+            other_angle_options = other_angle_options[:found_cone_index]
+            other_line_finished = False
+
+            # add the alternative cone to the other line
+            ordered_other.append(alt_other_cone)
+            other_angle_options.append([alt_other_angle, alt_other_options])
+            # remove the alternative cone from the unsearched cones if it is there
+            if alt_other_cone in unsearched_cones:
+                unsearched_cones.remove(alt_other_cone)
+
+            # append the yoinked cone to the current line
+            ordered_current.append(next_cone)
+            current_angle_options.append([next_angle, next_other_cone_options])
+
+            return self.get_line_recursive(current_is_blue, unsearched_cones, ordered_current, ordered_other, current_angle_options, other_angle_options, other_line_finished, check_other_line_cross=True)
+
+    def check_lines_cross(self, line1, line2):
+        # check if the lines cross over
+        # https://stackoverflow.com/questions/3838329/how-can-i-check-if-two-segments-intersect
+        def ccw(A, B, C):
+            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+        def intersect(A, B, C, D):
+            return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+
+        return intersect(line1[0], line1[1], line2[0], line2[1])
+        
 
     def planning_callback(self):
         # skip if we haven't completed a lap yet
@@ -322,31 +479,17 @@ class OrderedMapSpline(Node):
         # sort cones into order by finding the next cone in the direction of travel
         ordered_blues = [closest_blue]
         ordered_yellows = [closest_yellow]
-        last_blue = closest_blue
-        last_yellow = closest_yellow
-        last_blue_angle = 0
-        last_yellow_angle = 0
-        while len(unsearched_cones) > 0:
-            next_blue, last_blue_angle, last_blue_dist = get_next_cone(
-                unsearched_cones, last_blue, last_blue_angle,
-                search_range=4, search_angle=pi/5
-            )
-            if next_blue is None:
-                break
-            ordered_blues.append(next_blue)
-            unsearched_cones.remove(next_blue)
-            last_blue = next_blue
+        blue_angle_dists = [[0, []]]
+        yellow_angle_dists = [[0, []]]
 
-        while len(unsearched_cones) > 0:
-            next_yellow, last_yellow_angle, last_yellow_dist = get_next_cone(
-                unsearched_cones, last_yellow, last_yellow_angle,
-                search_range=4, search_angle=pi/5
-            )
-            if next_yellow is None:
-                break
-            ordered_yellows.append(next_yellow)
-            unsearched_cones.remove(next_yellow)
-            last_yellow = next_yellow
+        # ordered_first, ordered_second, first_is_blue = self.get_line_recursive(True, unsearched_cones, ordered_blues, ordered_yellows, blue_angle_dists, yellow_angle_dists, False)
+        ordered_first, ordered_second, first_is_blue = self.get_line_recursive(False, unsearched_cones, ordered_yellows, ordered_blues, yellow_angle_dists, blue_angle_dists, False)
+        if first_is_blue:
+            ordered_blues = ordered_first
+            ordered_yellows = ordered_second
+        else:
+            ordered_blues = ordered_second
+            ordered_yellows = ordered_first
 
         # Spline smoothing
         # make number of pts based on length of path
