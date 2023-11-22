@@ -110,33 +110,53 @@ def get_closest_cone(cones: list, dir: int=1, start_dist: int=3, pos: float=1.5)
     return nearest_cone
 
 
-def get_next_cone(cones: list, current_cone: list, last_angle: float, search_range=5, search_angle=pi/2):
+def get_next_cone(cones: list, last_cone: list, heading_angle: float, search_range=5, search_angle=pi/2):
     """
     Gets the next cone in the direction of travel. searches within view cone of 90 degrees.
     * param cones: [x,y] coords of all current cones
-    * param current_cone: [x,y] coords of current cone
+    * param last_cone: [x,y] coords of current cone
     * param angle: angle cone of view in degrees
     * param range: range of cone of view in metres
     """
 
     # iterate through all cones and find the closest one
     nearest_cone = None
-    nearest_angle = None
-    last_dist = float("inf")
+    last_angle = search_angle
+    last_dist = search_range
 
     # rotate search area by last angle
     for cone in cones:
-        dist = fast_dist(current_cone, cone)
-        # get angle between current point and next point
-        cone_angle = angle(current_cone, cone)
-        error = wrap_to_pi(last_angle - cone_angle)
-        if search_angle > error > -search_angle and dist < search_range ** 2:
-            if dist < last_dist:
-                nearest_cone = cone
-                nearest_angle = cone_angle
-                last_dist = dist
-    return nearest_cone, nearest_angle
+        # check if this cone is same as last cone
+        if cone == last_cone:
+            continue
 
+        distance = dist(last_cone, cone)
+        # get angle between current point and next point
+        cone_angle = angle(last_cone, cone)
+        error = wrap_to_pi(heading_angle - cone_angle)
+        if last_angle > error > -last_angle and distance < last_dist:
+            nearest_cone = cone
+            last_angle = cone_angle
+            last_dist = distance
+    return nearest_cone, last_angle, last_dist
+
+def search_map(unsearched_cones, closest):
+    last = closest
+    last_angle = 0
+    sorted = []
+    print(unsearched_cones)
+    while len(unsearched_cones) > 0:
+        next, last_angle, last_dist = get_next_cone(
+            unsearched_cones, last, last_angle,
+            search_range=5, search_angle=pi/3
+        )
+        if next is None:
+            break
+
+        unsearched_cones.remove(next)
+        sorted.append(next)
+    
+    return sorted
 
 def discovery_cones(cones):
     """
@@ -222,11 +242,11 @@ class OrderedMapSpline(Node):
         super().__init__("ordered_map_spline_node")
 
         # sub to track for all cone locations relative to car start point
-        self.create_subscription(ConeDetectionStamped, "/slam/global_map", self.map_callback, QOS_LATEST)
+        self.create_subscription(ConeDetectionStamped, "/lidar/cone_detection", self.map_callback, QOS_LATEST)
         self.create_subscription(State, "/system/as_status", self.state_callback, QOS_LATEST)
         self.create_timer(1/10, self.planning_callback)
 
-        self.declare_parameter("start_following", True)
+        self.declare_parameter("start_following", False)
 
         # publishers
         self.blue_bound_pub = self.create_publisher(Path, "/planning/blue_bounds", 1)
@@ -273,18 +293,31 @@ class OrderedMapSpline(Node):
             unsearched_cones = mapped_cones(self.current_track.cones)
 
         # find closest left and right cones to car
-        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=1)
+        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=3, pos=0)
         # remove closest cones from list
         if closest_blue is None:
             self.get_logger().warn("No blue cones found")
             return
         unsearched_cones.remove(closest_blue)
 
-        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=1)
+        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=3, pos=0)
         if closest_yellow is None:
             self.get_logger().warn("No yellow cones found")
             return
         unsearched_cones.remove(closest_yellow)
+
+        # unsearched_cones_yellow = unsearched_cones.copy()
+        # unsearched_cones_blue = unsearched_cones.copy()
+
+        # duplicate_free = False
+        # while not duplicate_free:
+        #     sorted_blues = search_map(unsearched_cones_yellow, closest_blue)
+        #     sorted_yellows = search_map(unsearched_cones_blue, closest_yellow)
+        #     # find any cones in both lists
+        #     duplicates = []
+        #     for cone in sorted_blues:
+        #         if cone in sorted_yellows:
+        #             # find which side this best fits in
 
         # sort cones into order by finding the next cone in the direction of travel
         ordered_blues = [closest_blue]
@@ -294,7 +327,7 @@ class OrderedMapSpline(Node):
         last_blue_angle = 0
         last_yellow_angle = 0
         while len(unsearched_cones) > 0:
-            next_blue, last_blue_angle = get_next_cone(
+            next_blue, last_blue_angle, last_blue_dist = get_next_cone(
                 unsearched_cones, last_blue, last_blue_angle,
                 search_range=7, search_angle=pi/4
             )
@@ -305,7 +338,7 @@ class OrderedMapSpline(Node):
             last_blue = next_blue
 
         while len(unsearched_cones) > 0:
-            next_yellow, last_yellow_angle = get_next_cone(
+            next_yellow, last_yellow_angle, last_yellow_dist = get_next_cone(
                 unsearched_cones, last_yellow, last_yellow_angle,
                 search_range=7, search_angle=pi/4
             )
