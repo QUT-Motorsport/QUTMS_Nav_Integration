@@ -54,6 +54,6 @@ def generate_launch_description():
             mapping,
             graphbasedslam,
             # assocation_node,
-            boundary_map_node,
+            # boundary_map_node,
         ]
     )
