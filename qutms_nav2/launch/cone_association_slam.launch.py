@@ -83,9 +83,9 @@ def generate_launch_description():
     
     return launch.LaunchDescription(
         [
-            robot_localization_launch,
+            localisation_node,
             async_slam_toolbox_node,
-            assocation_node,
+            # assocation_node,
             boundary_map_node,
             # nav2_bringup_launch,
             # nav_commands_node,

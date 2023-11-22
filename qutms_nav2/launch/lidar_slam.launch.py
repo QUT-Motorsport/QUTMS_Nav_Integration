@@ -39,15 +39,6 @@ def generate_launch_description():
         ],
     )
 
-    assocation_node = Node(
-        package="nav_interfaces",
-        executable="cone_placement",
-        output="screen",
-        parameters=[
-            os.path.join(pkg_share, "config/custom_params.yaml"),
-        ],
-    )
-
     boundary_map_node = Node(
         package="nav_interfaces",
         executable="boundary_interpolation",
@@ -63,6 +54,6 @@ def generate_launch_description():
             mapping,
             graphbasedslam,
             # assocation_node,
-            # boundary_map_node,
+            boundary_map_node,
         ]
     )
