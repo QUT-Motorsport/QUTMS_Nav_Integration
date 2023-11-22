@@ -1,0 +1,44 @@
+scan_matcher:
+  ros__parameters:
+    global_frame_id: "track"
+    odom_frame_id: "odom"
+    robot_frame_id: "base_footprint"
+    registration_method: "NDT" # "NDT" or "GICP" 
+    ndt_resolution: 0.05 # resolution size of voxel[m]
+    ndt_num_threads: 2 # threads using ndt(if 0 is set, maximum alloawble threads are used
+    gicp_corr_dist_threshold: 1.0 # the distance threshold between the two corresponding points of the source and target[m]
+    trans_for_mapupdate: 0.05 # moving distance of map update[m]
+    vg_size_for_input: 0.05 # down sample size of input cloud[m]
+    vg_size_for_map: 0.05 # down sample size of map cloud[m]
+    use_min_max_filter: true
+    scan_min_range: 1.0
+    scan_max_range: 30.0
+    scan_period: 0.1
+    map_publish_period: 0.1
+    num_targeted_cloud: 200 # number of targeted cloud in registration(The higher this number, the less distortion.)
+    set_initial_pose: true
+    initial_pose_x: 0.0
+    initial_pose_y: 0.0
+    initial_pose_z: 0.0
+    initial_pose_qx: 0.0
+    initial_pose_qy: 0.0
+    initial_pose_qz: 0.0
+    initial_pose_qw: 1.0
+    use_imu: false
+    use_odom: true
+    debug_flag: true
+
+graph_based_slam:
+    ros__parameters:
+      registration_method: "NDT" # "NDT" or "GICP"
+      ndt_resolution: 0.05 # resolution size of voxel[m]
+      ndt_num_threads: 2 # threads using ndt(if 0 is set, maximum alloawble threads are used
+      voxel_leaf_size: 0.05 # down sample size of input cloud[m]
+      loop_detection_period: 100 # period of searching loop detection[ms]
+      threshold_loop_closure_score: 0.2 # fitness score of ndt for loop clousure
+      distance_loop_closure: 1.0  # distance far from revisit candidates for loop clousure[m]
+      range_of_searching_loop_closure: 1.0 # search radius for candidate points from the present for loop closure[m]
+      search_submap_num: 2 # the number of submap points before and after the revisit point used for registration
+      num_adjacent_pose_cnstraints: 2 # the number of constraints between successive nodes in a pose graph over time
+      use_save_map_in_loop: false # Whether to save the map when loop close(If the map saving process in loop close is too heavy and the self-position estimation fails, set this to false.)
+      debug_flag: true

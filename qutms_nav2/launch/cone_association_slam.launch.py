@@ -10,10 +10,14 @@ def generate_launch_description():
     pkg_share = get_package_share_path("qutms_nav2")
 
     # Community ROS 2 packages
-    robot_localization_launch = IncludeLaunchDescription(
-        launch_description_source=PythonLaunchDescriptionSource(
-            launch_file_path=str(pkg_share / "launch" / "robot_localization.launch.py")
-        ),
+    localisation_node = Node(
+        package="robot_localization",
+        executable="ekf_node",
+        name="odom_filter_node",
+        output="screen",
+        parameters=[
+            os.path.join(pkg_share, "config/localisation_params.yaml"),
+        ],
     )
 
     async_slam_toolbox_node = Node(
