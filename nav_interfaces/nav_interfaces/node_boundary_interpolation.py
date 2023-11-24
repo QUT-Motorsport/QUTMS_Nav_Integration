@@ -20,10 +20,10 @@ import time
 
 # for colour gradient based on intensity
 MAX_ANGLE = 0.15
-SEARCH_RANGE=7
-SEARCH_ANGLE=pi/2.5
-SEARCH_RANGE_LENIANCE=0.3
-SEARCH_ANGLE_MIN_LENIANCE=10 * pi/180 # 10 degrees
+SEARCH_RANGE=3
+SEARCH_ANGLE=pi/4
+SEARCH_RANGE_LENIANCE=0.1
+SEARCH_ANGLE_MIN_LENIANCE=15 * pi/180 # 10 degrees
 
 
 def approximate_b_spline_path(x: list, y: list, n_path_points: int, degree=3, s=0) -> Tuple[list, list]:
@@ -135,26 +135,26 @@ def get_next_cone(cones: list, current_cone: list, last_angle: float, prefer_lef
     # rotate search area by last angle
     for cone in cones:
         # check if this cone is same as last cone
-        if cone == last_cone:
+        if cone == current_cone:
             continue
 
-        distance = dist(last_cone, cone)
+        distance = dist(current_cone, cone)
         # get angle between current point and next point
         cone_angle = angle(current_cone, cone)
         error = wrap_to_pi(last_angle - cone_angle)
-        if search_angle > error > -search_angle and dist < search_range ** 2:
+        if search_angle > error > -search_angle and distance < search_range ** 2:
             other_cone_options.append(cone)
-            if dist < last_dist + SEARCH_RANGE_LENIANCE and ((prefer_left_cone and error < last_error + SEARCH_ANGLE_MIN_LENIANCE) or (not prefer_left_cone and error > last_error - SEARCH_ANGLE_MIN_LENIANCE)):
+            if distance < last_dist + SEARCH_RANGE_LENIANCE and ((prefer_left_cone and error < last_error + SEARCH_ANGLE_MIN_LENIANCE) or (not prefer_left_cone and error > last_error - SEARCH_ANGLE_MIN_LENIANCE)):
                 # if the difference in angle is bigger than the leniance, then just take it
                 if (prefer_left_cone and last_error - error > SEARCH_ANGLE_MIN_LENIANCE) or (not prefer_left_cone and error - last_error > SEARCH_ANGLE_MIN_LENIANCE):
                     nearest_cone = cone
                     nearest_angle = cone_angle
-                    last_dist = dist
+                    last_dist = distance
                     last_error = error
-                elif dist < last_dist:
+                elif distance < last_dist:
                     nearest_cone = cone
                     nearest_angle = cone_angle
-                    last_dist = dist
+                    last_dist = distance
                     last_error = error
     if nearest_cone is not None:
         other_cone_options.remove(nearest_cone)
@@ -262,7 +262,7 @@ class OrderedMapSpline(Node):
         super().__init__("ordered_map_spline_node")
 
         # sub to track for all cone locations relative to car start point
-        self.create_subscription(ConeDetectionStamped, "/ground_truth/global_map", self.map_callback, QOS_LATEST)
+        self.create_subscription(ConeDetectionStamped, "/slam/global_map", self.map_callback, QOS_LATEST)
         self.create_subscription(State, "/system/as_status", self.state_callback, QOS_LATEST)
         self.create_timer(1/10, self.planning_callback)
 
@@ -490,6 +490,10 @@ class OrderedMapSpline(Node):
         else:
             ordered_blues = ordered_second
             ordered_yellows = ordered_first
+
+        print(ordered_blues)
+        print(ordered_yellows)
+
 
         # Spline smoothing
         # make number of pts based on length of path

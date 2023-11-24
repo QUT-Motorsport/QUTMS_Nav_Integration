@@ -86,7 +86,7 @@ def generate_launch_description():
             localisation_node,
             async_slam_toolbox_node,
             # assocation_node,
-            boundary_map_node,
+            # boundary_map_node,
             # nav2_bringup_launch,
             # nav_commands_node,
             # pose_to_tf_node,
