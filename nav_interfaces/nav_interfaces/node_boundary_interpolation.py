@@ -19,12 +19,10 @@ from typing import List, Tuple
 import time
 
 # for colour gradient based on intensity
-MAX_ANGLE = 0.15
-SEARCH_RANGE=3
-SEARCH_ANGLE=pi/4
+SEARCH_RANGE=5
+SEARCH_ANGLE=pi/3
 SEARCH_RANGE_LENIANCE=0.1
 SEARCH_ANGLE_MIN_LENIANCE=15 * pi/180 # 10 degrees
-
 
 def approximate_b_spline_path(x: list, y: list, n_path_points: int, degree=3, s=0) -> Tuple[list, list]:
     """
@@ -95,7 +93,7 @@ def make_path_msg(points, spline_len):
     return path_msg
 
 
-def get_closest_cone(cones: list, dir: int=1, start_dist: int=3, pos: float=1.5) -> List[float]:
+def get_closest_cone(cones: list, dir: int=1, half_track_wid: float=1.5) -> List[float]:
     """
     Gets the position of the nearest cone to the car.
     * param cones: [x,y] coords of all current cones
@@ -106,7 +104,7 @@ def get_closest_cone(cones: list, dir: int=1, start_dist: int=3, pos: float=1.5)
     nearest_cone = None
     last_dist = float("inf")
     for cone in cones:
-        current_dist = fast_dist([start_dist, dir*pos], cone)
+        current_dist = dist([0, dir*half_track_wid], cone)
         if current_dist < last_dist:
             nearest_cone = cone
             last_dist = current_dist
@@ -142,7 +140,7 @@ def get_next_cone(cones: list, current_cone: list, last_angle: float, prefer_lef
         # get angle between current point and next point
         cone_angle = angle(current_cone, cone)
         error = wrap_to_pi(last_angle - cone_angle)
-        if search_angle > error > -search_angle and distance < search_range ** 2:
+        if search_angle > error > -search_angle and distance < search_range:
             other_cone_options.append(cone)
             if distance < last_dist + SEARCH_RANGE_LENIANCE and ((prefer_left_cone and error < last_error + SEARCH_ANGLE_MIN_LENIANCE) or (not prefer_left_cone and error > last_error - SEARCH_ANGLE_MIN_LENIANCE)):
                 # if the difference in angle is bigger than the leniance, then just take it
@@ -160,23 +158,6 @@ def get_next_cone(cones: list, current_cone: list, last_angle: float, prefer_lef
         other_cone_options.remove(nearest_cone)
     return nearest_cone, nearest_angle, other_cone_options
 
-def search_map(unsearched_cones, closest):
-    last = closest
-    last_angle = 0
-    sorted = []
-    print(unsearched_cones)
-    while len(unsearched_cones) > 0:
-        next, last_angle, last_dist = get_next_cone(
-            unsearched_cones, last, last_angle,
-            search_range=5, search_angle=pi/3
-        )
-        if next is None:
-            break
-
-        unsearched_cones.remove(next)
-        sorted.append(next)
-    
-    return sorted
 
 def discovery_cones(cones):
     """
@@ -450,31 +431,20 @@ class OrderedMapSpline(Node):
             unsearched_cones = mapped_cones(self.current_track.cones)
 
         # find closest left and right cones to car
-        closest_blue = get_closest_cone(unsearched_cones, dir=1, start_dist=3)
+        closest_blue = get_closest_cone(unsearched_cones, dir=1)
         # remove closest cones from list
         if closest_blue is None:
             self.get_logger().warn("No blue cones found")
             return
         unsearched_cones.remove(closest_blue)
 
-        closest_yellow = get_closest_cone(unsearched_cones, dir=-1, start_dist=3)
+        closest_yellow = get_closest_cone(unsearched_cones, dir=-1)
         if closest_yellow is None:
             self.get_logger().warn("No yellow cones found")
             return
         unsearched_cones.remove(closest_yellow)
 
-        # unsearched_cones_yellow = unsearched_cones.copy()
-        # unsearched_cones_blue = unsearched_cones.copy()
-
-        # duplicate_free = False
-        # while not duplicate_free:
-        #     sorted_blues = search_map(unsearched_cones_yellow, closest_blue)
-        #     sorted_yellows = search_map(unsearched_cones_blue, closest_yellow)
-        #     # find any cones in both lists
-        #     duplicates = []
-        #     for cone in sorted_blues:
-        #         if cone in sorted_yellows:
-        #             # find which side this best fits in
+        print("Closest blue: " + str(closest_blue) + "\tClosest yellow: " + str(closest_yellow))
 
         # sort cones into order by finding the next cone in the direction of travel
         ordered_blues = [closest_blue]
@@ -491,9 +461,7 @@ class OrderedMapSpline(Node):
             ordered_blues = ordered_second
             ordered_yellows = ordered_first
 
-        print(ordered_blues)
-        print(ordered_yellows)
-
+        self.get_logger().info("Blue cones: " + str(len(ordered_blues)) + "\tYellow cones: " + str(len(ordered_yellows)))
 
         # Spline smoothing
         # make number of pts based on length of path
