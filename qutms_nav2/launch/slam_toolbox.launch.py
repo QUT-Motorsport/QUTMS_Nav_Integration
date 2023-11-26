@@ -3,6 +3,8 @@ from ament_index_python.packages import get_package_share_path
 
 import launch
 from launch_ros.actions import Node
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import IncludeLaunchDescription
 
 def generate_launch_description():
     pkg_share = get_package_share_path("qutms_nav2")
@@ -18,29 +20,22 @@ def generate_launch_description():
         ],
     )
 
-    mapping = Node(
-        package='scanmatcher',
-        executable='scanmatcher_node',
-        output='screen',
-        remappings=[('/input_cloud','/velodyne_points')],
+    async_slam_toolbox_node = Node(
+        package="slam_toolbox",
+        executable="async_slam_toolbox_node",
+        name="slam_toolbox_node",
+        output="screen",
         parameters=[
-            os.path.join(pkg_share, "config/lidar_slam_params.yaml"),
+            os.path.join(pkg_share, "config/slam_params.yaml"),
+        ],
+        remappings=[
+            ("/pose", "/slam/car_pose"),
         ],
     )
-
-    graphbasedslam = Node(
-        package='graph_based_slam',
-        executable='graph_based_slam_node',
-        output='screen',
-        parameters=[
-            os.path.join(pkg_share, "config/lidar_slam_params.yaml"),
-        ],
-    )
-
+    
     return launch.LaunchDescription(
         [
             localisation_node,
-            mapping,
-            graphbasedslam,
+            async_slam_toolbox_node,
         ]
     )
