@@ -104,6 +104,11 @@ def get_closest_cone(cones: list, dir: int=1, half_track_wid: float=1.5) -> List
     nearest_cone = None
     last_dist = float("inf")
     for cone in cones:
+        # make sure cone is on the same side as the dir
+        # make sure starting cone is ahead of the 0,0 point
+        if cone[1] * dir < 0 or cone[0] < 2:
+            continue
+
         current_dist = dist([0, dir*half_track_wid], cone)
         if current_dist < last_dist:
             nearest_cone = cone
